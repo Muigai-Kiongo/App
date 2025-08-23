@@ -5,14 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,17 +14,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.app.ui.theme.GreenColor
-import com.example.app.ui.theme.OrangeColor
-
-// Define custom colors for the green and orange theme
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppHeader(
     modifier: Modifier = Modifier,
-    containerColor: Color = GreenColor, // Use green as the container color
-    contentColor: Color = Color.White, // Use white for text and icons
+    containerColor: Color = GreenColor,
+    contentColor: Color = Color.White,
     title: String = "Farm Hub",
     onChatClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
@@ -72,15 +61,13 @@ private fun ActionButtons(
         IconButton(onClick = onSearchClick) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = Color.White // Use orange for the search icon
+                contentDescription = "Search"
             )
         }
         IconButton(onClick = onChatClick) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Chat,
-                contentDescription = "Chat",
-                tint = Color.White // Use orange for the chat icon
+                contentDescription = "Chat"
             )
         }
     }

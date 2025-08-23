@@ -1,17 +1,40 @@
-package com.example.app.routes
+package com.example.app.features
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,54 +42,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.app.R
-import com.example.app.features.AppHeader
-import com.example.app.features.BottomNavBar
-import com.example.app.tabs.ChatScreen
-import com.example.app.tabs.HelpScreen
-import com.example.app.tabs.ProfileScreen
-import com.example.app.tabs.VideoScreen
+
 
 @Composable
-fun HomeScreen(
-    onSearchClick: () -> Unit = {}
-) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-
-    Scaffold(
-        topBar = {
-            AppHeader(
-                onChatClick = { selectedTabIndex = 4 },
-                onSearchClick = onSearchClick
-            )
-        },
-        bottomBar = {
-            BottomNavBar(
-                selectedTabIndex = selectedTabIndex,
-                onTabSelected = { index -> selectedTabIndex = index }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
-            when (selectedTabIndex) {
-                0 -> HomeContent()
-                1 -> HelpScreen()
-                2 -> VideoScreen()
-                3 -> ProfileScreen()
-                4 -> ChatScreen()
-
-            }
-        }
-    }
-}
-
-@Composable
-fun HomeContent() {
+fun FarmHelp() {
     var currentStep by remember { mutableIntStateOf(1) }
     var description by remember { mutableStateOf(TextFieldValue("")) }
     var showConfirmation by remember { mutableStateOf(false) }
@@ -287,7 +269,17 @@ fun SuccessStep(onHome: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onHome) {
-            Text("Go Back Home")
+            Text("Go Back")
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FarmHelpPreview() {
+    MaterialTheme {
+        Surface {
+            FarmHelp()
         }
     }
 }

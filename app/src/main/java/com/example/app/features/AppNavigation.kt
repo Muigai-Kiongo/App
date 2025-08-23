@@ -1,43 +1,106 @@
 package com.example.app.features
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.app.routes.AboutScreen
-import com.example.app.routes.AuthScreen
-import com.example.app.routes.HomeScreen
 import com.example.app.routes.IntroScreen
+import com.example.app.tabs.ChatScreen
+import com.example.app.tabs.HelpScreen
+import com.example.app.tabs.ProfileScreen
+import com.example.app.tabs.VideoScreen
+
+fun getTitleForRoute(route: String?): String {
+    return when (route) {
+        HomeTab.Intro.route -> "Farm Hub"
+        HomeTab.Help.route -> "Help Center"
+        HomeTab.Video.route -> "Video Tutorials"
+        HomeTab.Profile.route -> "Profile"
+        HomeTab.Chat.route -> "Chat"
+        else -> "Farm Hub"
+    }
+}
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
 
     NavHost(
         navController = navController,
-        startDestination = "intro"
+        startDestination = HomeTab.Intro.route,
+        modifier = Modifier.fillMaxSize()
     ) {
-        composable("intro") {
+        // --- IntroScreen (full-screen) ---
+        composable(HomeTab.Intro.route) {
             IntroScreen(
-                onGetStartedClick = { navController.navigate("home") },
-                onLearnMoreClick = { navController.navigate("about") },
-                onSignupClick = { navController.navigate("auth") }
-            )
-        }
-        composable("about") {
-            AboutScreen()
-        }
-        composable("home") {
-            HomeScreen(
-                onSearchClick = { navController.navigate("") }
+                onFarmHelpClick = {
+                    navController.navigate(HomeTab.Help.route) {
+                        popUpTo(HomeTab.Intro.route) { inclusive = true }
+                    }
+                },
+                onLearnMoreClick = { navController.navigate(HomeTab.Help.route) },
+                onSignupClick = { /* Add auth navigation later */ }
             )
         }
 
+        // --- All other screens wrapped in Scaffold ---
+        composable(HomeTab.Help.route) {
+            ScaffoldWrapper(navController, currentRoute) { HelpScreen() }
+        }
+        composable(HomeTab.Video.route) {
+            ScaffoldWrapper(navController, currentRoute) { VideoScreen() }
+        }
+        composable(HomeTab.Profile.route) {
+            ScaffoldWrapper(navController, currentRoute) { ProfileScreen() }
+        }
+        composable(HomeTab.Chat.route) {
+            ScaffoldWrapper(navController, currentRoute) { ChatScreen() }
+        }
+    }
+}
 
-        composable("auth") {
-            AuthScreen(
-                onLoginSuccess ={navController.navigate("home")}
-                )
+@Composable
+fun ScaffoldWrapper(
+    navController: androidx.navigation.NavHostController,
+    currentRoute: String?,
+    content: @Composable () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            AppHeader(
+                title = getTitleForRoute(currentRoute),
+                onChatClick = { navController.navigate(HomeTab.Chat.route) },
+                onSearchClick = { /* TODO: add search later */ }
+            )
+        },
+        bottomBar = {
+            BottomNavBar(
+                currentRoute = currentRoute,
+                onTabSelected = { route ->
+                    navController.navigate(route) {
+                        // Pop up to the start destination of the tabs graph
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            content()
         }
     }
 }
