@@ -28,7 +28,7 @@ fun getTitleForRoute(route: String?): String {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(onToggleTheme: () -> Unit) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -38,20 +38,14 @@ fun AppNavigation() {
         startDestination = HomeTab.Intro.route,
         modifier = Modifier.fillMaxSize()
     ) {
-        // --- IntroScreen (full-screen) ---
         composable(HomeTab.Intro.route) {
             IntroScreen(
-                onFarmHelpClick = {
-                    navController.navigate(HomeTab.Help.route) {
-                        popUpTo(HomeTab.Intro.route) { inclusive = true }
-                    }
-                },
+                onFarmHelpClick = { navController.navigate(HomeTab.Help.route) { popUpTo(HomeTab.Intro.route) { inclusive = true } } },
                 onLearnMoreClick = { navController.navigate(HomeTab.Help.route) },
-                onSignupClick = { /* Add auth navigation later */ }
+                onSignupClick = { }
             )
         }
 
-        // --- All other screens wrapped in Scaffold ---
         composable(HomeTab.Help.route) {
             ScaffoldWrapper(navController, currentRoute) { HelpScreen() }
         }
@@ -59,13 +53,16 @@ fun AppNavigation() {
             ScaffoldWrapper(navController, currentRoute) { VideoScreen() }
         }
         composable(HomeTab.Profile.route) {
-            ScaffoldWrapper(navController, currentRoute) { ProfileScreen() }
+            ScaffoldWrapper(navController, currentRoute) {
+                ProfileScreen(onToggleTheme = onToggleTheme)
+            }
         }
         composable(HomeTab.Chat.route) {
             ScaffoldWrapper(navController, currentRoute) { ChatScreen() }
         }
     }
 }
+
 
 @Composable
 fun ScaffoldWrapper(
@@ -86,7 +83,7 @@ fun ScaffoldWrapper(
                 currentRoute = currentRoute,
                 onTabSelected = { route ->
                     navController.navigate(route) {
-                        // Pop up to the start destination of the tabs graph
+
                         popUpTo(navController.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
                         restoreState = true

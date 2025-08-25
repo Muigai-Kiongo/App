@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.example.app.R
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onToggleTheme: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -96,10 +96,10 @@ fun ProfileScreen() {
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            PreferenceItem(icon = Icons.Default.Notifications, title = "Notifications") { /* handle click */ }
-            PreferenceItem(icon = Icons.Default.DarkMode, title = "Dark Mode") { /* toggle theme */ }
-            PreferenceItem(icon = Icons.Default.Language, title = "Language") { /* language settings */ }
-            PreferenceItem(icon = Icons.Default.Settings, title = "Account Settings") { /* account settings */ }
+            PreferenceItem(icon = Icons.Default.Notifications, title = "Notifications") { }
+            PreferenceItem(icon = Icons.Default.DarkMode, title = "Dark Mode") { onToggleTheme() }
+            PreferenceItem(icon = Icons.Default.Language, title = "Language") { }
+            PreferenceItem(icon = Icons.Default.Settings, title = "Account Settings") { }
         }
     }
 }
