@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.app"
-        minSdk = 24
+        minSdk = 25
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -54,7 +54,8 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.android)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.kt.coil.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose) // Material3 components
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.compose.material) // Material3 components
 
     // Testing libraries
     testImplementation(libs.junit) // Unit testing

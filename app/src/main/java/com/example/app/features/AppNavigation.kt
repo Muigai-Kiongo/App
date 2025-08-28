@@ -1,15 +1,18 @@
 package com.example.app.features
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.app.routes.AuthScreen
 import com.example.app.routes.IntroScreen
 import com.example.app.tabs.ChatScreen
 import com.example.app.tabs.HelpScreen
@@ -41,10 +44,17 @@ fun AppNavigation(onToggleTheme: () -> Unit) {
         composable(HomeTab.Intro.route) {
             IntroScreen(
                 onFarmHelpClick = { navController.navigate(HomeTab.Help.route) { popUpTo(HomeTab.Intro.route) { inclusive = true } } },
-                onLearnMoreClick = { navController.navigate(HomeTab.Help.route) },
-                onSignupClick = { }
+                onSignupClick = { navController.navigate(HomeTab.Auth.route)}
             )
         }
+
+        composable(HomeTab.Auth.route) {
+            AuthScreen(
+                onLoginSuccess = {  }
+            )
+        }
+
+
 
         composable(HomeTab.Help.route) {
             ScaffoldWrapper(navController, currentRoute) { HelpScreen() }
@@ -66,7 +76,7 @@ fun AppNavigation(onToggleTheme: () -> Unit) {
 
 @Composable
 fun ScaffoldWrapper(
-    navController: androidx.navigation.NavHostController,
+    navController: NavHostController,
     currentRoute: String?,
     content: @Composable () -> Unit
 ) {
@@ -75,7 +85,6 @@ fun ScaffoldWrapper(
             AppHeader(
                 title = getTitleForRoute(currentRoute),
                 onChatClick = { navController.navigate(HomeTab.Chat.route) },
-                onSearchClick = { /* TODO: add search later */ }
             )
         },
         bottomBar = {
@@ -92,7 +101,7 @@ fun ScaffoldWrapper(
             )
         }
     ) { innerPadding ->
-        androidx.compose.foundation.layout.Box(
+        Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()

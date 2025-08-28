@@ -4,8 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,7 +29,6 @@ fun AppHeader(
     contentColor: Color = Color.White,
     title: String = "Farm Hub",
     onChatClick: () -> Unit = {},
-    onSearchClick: () -> Unit = {},
 ) {
     CenterAlignedTopAppBar(
         modifier = modifier,
@@ -42,7 +47,6 @@ fun AppHeader(
         },
         actions = {
             ActionButtons(
-                onSearchClick = onSearchClick,
                 onChatClick = onChatClick
             )
         }
@@ -51,19 +55,12 @@ fun AppHeader(
 
 @Composable
 private fun ActionButtons(
-    onSearchClick: () -> Unit,
     onChatClick: () -> Unit
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onSearchClick) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search"
-            )
-        }
         IconButton(onClick = onChatClick) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Chat,
@@ -80,7 +77,6 @@ fun AppHeaderPreview() {
         Surface {
             AppHeader(
                 onChatClick = {},
-                onSearchClick = {}
             )
         }
     }

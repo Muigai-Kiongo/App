@@ -1,39 +1,22 @@
 package com.example.app.routes
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.app.ui.theme.GreenColor
+import com.example.app.R
 
 @Composable
 fun IntroScreen(
     onFarmHelpClick: () -> Unit,
-    onLearnMoreClick: () -> Unit,
     onSignupClick: () -> Unit
 ) {
     Scaffold { innerPadding ->
@@ -50,18 +33,16 @@ fun IntroScreen(
 
             Text(
                 text = "Welcome to",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
                 textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // App logo placeholder
-            Icon(
-                imageVector = Icons.Filled.Apps,
-                contentDescription = "App Logo",
-                modifier = Modifier.size(100.dp),
-                tint = MaterialTheme.colorScheme.primary
+            Image(
+                painter = painterResource(id = R.drawable.farmhub_logo),
+                contentDescription = "FarmHub Logo",
+                modifier = Modifier.size(100.dp)
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -70,105 +51,87 @@ fun IntroScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
-                    .padding(vertical = 4.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .height(200.dp)
+                    .padding(vertical = 4.dp)
+                    .clickable(onClick = onFarmHelpClick),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clickable(
-                            onClick = onFarmHelpClick,
-
-                        )
                         .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Help,
+                    Image(
+                        painter = painterResource(id = R.drawable.farmhelp_logo),
                         contentDescription = "Farm Help Icon",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(100.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Column(
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Farm Help",
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Text(
-                            text = "Ask questions and get expert advice on farming.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+                    Text(
+                        text = "Farm Help",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Ask questions and get expert advice on farming.",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Secondary Card Button - Farm Videos
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
-                    .padding(vertical = 4.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .height(200.dp)
+                    .padding(vertical = 4.dp)
+                    .clickable(onClick = onSignupClick),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clickable(
-                            onClick = onSignupClick,
-                        )
                         .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.VideoLibrary,
+                    Image(
+                        painter = painterResource(id = R.drawable.farmers_videos_logo_final_2),
                         contentDescription = "Farm Videos Icon",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(100.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Column(
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Farm Videos",
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            text = "Watch free videos and learn more about farming.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
+                    Text(
+                        text = "Farm Videos",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Watch free videos and learn more about farming.",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            Text(
-                text = "About FarmHub",
-                modifier = Modifier.clickable(onClick = onLearnMoreClick),
-                style = MaterialTheme.typography.labelLarge,
-                color = GreenColor,
-            )
         }
     }
 }

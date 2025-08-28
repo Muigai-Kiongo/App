@@ -37,7 +37,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
         ) {
             // Logo
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = painterResource(id = R.drawable.farmhub_logo),
                 contentDescription = "App Logo",
                 modifier = Modifier.size(100.dp),
                 contentScale = ContentScale.Fit
