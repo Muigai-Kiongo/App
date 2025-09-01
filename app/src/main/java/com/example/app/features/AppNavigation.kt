@@ -27,7 +27,6 @@ import com.example.app.components.BottomNavBar
 fun getTitleForRoute(route: String?): String {
     return when {
         route == null -> "Farm Hub"
-        route.startsWith("videoDetail") -> "" // hide title on detail
         route == HomeTab.Intro.route -> "Farm Hub"
         route == HomeTab.Help.route -> "Help Center"
         route == HomeTab.Video.route -> "Video Tutorials"
