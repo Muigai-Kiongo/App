@@ -1,34 +1,64 @@
 package com.example.app.tabs
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// ---------------- Sample comments ----------------
-data class Comment(val user: String, val text: String)
-
-val sampleComments = listOf(
-    Comment("Alice", "Great tutorial! Learned a lot."),
-    Comment("Bob", "Thanks for sharing, very helpful."),
-    Comment("Charlie", "Can you make a video on organic fertilizers?"),
-    Comment("Daisy", "Loved the explanation, clear and concise."),
-    Comment("Eve", "More videos like this please!")
-)
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app.components.VideoCard
+import com.example.app.models.VideoViewModel
 
 // ---------------- Video Detail Screen ----------------
 @Composable
-fun VideoDetailScreen(video: VideoItem, relatedVideos: List<VideoItem> = sampleVideos) {
+fun VideoDetailScreen(
+    videoId: Int,
+    videoViewModel: VideoViewModel = viewModel(),
+    onVideoClick: (Int) -> Unit
+) {
     var commentsExpanded by remember { mutableStateOf(false) }
+
+    // Fetch current video and related videos from ViewModel
+    val video = videoViewModel.getVideoById(videoId)
+    val relatedVideos = videoViewModel.getRelatedVideos(videoId)
+    val comments = videoViewModel.comments
+
+    if (video == null) {
+        // Fallback if video not found
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Video not found", fontSize = 18.sp)
+        }
+        return
+    }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -36,13 +66,20 @@ fun VideoDetailScreen(video: VideoItem, relatedVideos: List<VideoItem> = sampleV
             .fillMaxSize()
             .padding(12.dp)
     ) {
-
         // Video title / info
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(video.title, fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(
+                    text = video.title,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("${video.channel} • ${video.views} • ${video.time}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Text(
+                    text = "${video.channel} • ${video.views} • ${video.time}",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
             }
         }
 
@@ -53,17 +90,22 @@ fun VideoDetailScreen(video: VideoItem, relatedVideos: List<VideoItem> = sampleV
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)) {
-
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
                     Row(
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { commentsExpanded = !commentsExpanded }
                     ) {
-                        Text("Comments (${sampleComments.size})", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 16.sp)
+                        Text(
+                            "Comments (${comments.size})",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
                         Spacer(modifier = Modifier.weight(1f))
                         Icon(
                             imageVector = if (commentsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -73,9 +115,13 @@ fun VideoDetailScreen(video: VideoItem, relatedVideos: List<VideoItem> = sampleV
 
                     if (commentsExpanded) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        sampleComments.forEach { comment ->
-                            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text(comment.user, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        comments.forEach { comment ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Text(comment.user, fontWeight = FontWeight.Bold)
                                 Text(comment.text, fontSize = 14.sp)
                             }
                         }
@@ -86,12 +132,19 @@ fun VideoDetailScreen(video: VideoItem, relatedVideos: List<VideoItem> = sampleV
 
         // ---------------- Related Videos ----------------
         item {
-            Text("Related Videos", fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(
+                "Related Videos",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(modifier = Modifier.height(8.dp))
         }
 
         items(relatedVideos) { videoItem ->
-            VideoCard(videoItem)
+            VideoCard(
+                video = videoItem,
+                onClick = { onVideoClick(videoItem.id) }
+            )
         }
     }
 }
