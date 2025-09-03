@@ -1,4 +1,4 @@
-package com.example.app.tabs
+package com.example.app.ui.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,8 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.app.components.FilterRow
-import com.example.app.components.VideoCard
+import com.example.app.ui.components.FilterRow
+import com.example.app.ui.components.VideoCard
 import com.example.app.features.HomeTab
 import com.example.app.models.VideoViewModel
 import com.example.app.models.videoFilters

@@ -1,4 +1,4 @@
-package com.example.app.tabs
+package com.example.app.ui.tabs
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult

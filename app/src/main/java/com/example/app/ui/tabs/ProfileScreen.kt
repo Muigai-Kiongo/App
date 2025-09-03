@@ -1,4 +1,4 @@
-package com.example.app.tabs
+package com.example.app.ui.tabs
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

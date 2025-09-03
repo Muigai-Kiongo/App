@@ -10,7 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.app.features.AppNavigation
 import com.example.app.ui.theme.AppTheme
-import com.example.app.ui.theme.ThemeViewModel
+import com.example.app.viewmodel.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
 

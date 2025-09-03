@@ -1,4 +1,4 @@
-package com.example.app.tabs
+package com.example.app.ui.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.app.components.VideoCard
+import com.example.app.ui.components.VideoCard
 import com.example.app.models.VideoViewModel
 
 // ---------------- Video Detail Screen ----------------

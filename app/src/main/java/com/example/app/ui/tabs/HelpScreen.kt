@@ -1,5 +1,6 @@
-package com.example.app.tabs
+package com.example.app.ui.tabs
 
+import android.R
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -273,7 +274,7 @@ fun FarmHelpWizard(onClose: () -> Unit) {
             when (step) {
                 1 -> UploadStep(
                     onNext = {
-                        selectedImageRes = android.R.drawable.ic_menu_camera // placeholder
+                        selectedImageRes = R.drawable.ic_menu_camera // placeholder
                         currentStep = 2
                     }
                 )

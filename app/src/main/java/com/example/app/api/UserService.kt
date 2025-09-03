@@ -2,6 +2,8 @@ package com.example.app.api
 
 import com.example.app.models.login.LoginResponse
 import com.example.app.models.login.LoginRequest
+import com.example.app.models.signup.RegisterRequest
+import com.example.app.models.signup.RegisterResponse
 
 import retrofit2.Call
 import retrofit2.http.Body
@@ -9,18 +11,14 @@ import retrofit2.http.POST
 
 interface UserService {
 
+
     @POST("auth/login")
     fun userLogin(@Body loginRequest: LoginRequest): Call<LoginResponse>
 
+    @POST("auth/register")
+    fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
 
 
-
-
-
-
-//    @POST("auth/register")
-//    fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
-//
 //    @GET("auth/me")
 //    fun profileUser(): Call<ProfileResponse>
 //

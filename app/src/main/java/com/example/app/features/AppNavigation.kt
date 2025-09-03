@@ -15,23 +15,23 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.app.routes.AuthScreen
 import com.example.app.routes.IntroScreen
-import com.example.app.tabs.ChatScreen
-import com.example.app.tabs.HelpScreen
-import com.example.app.tabs.ProfileScreen
-import com.example.app.tabs.VideoDetailScreen
-import com.example.app.tabs.VideoScreen
+import com.example.app.ui.tabs.ChatScreen
+import com.example.app.ui.tabs.HelpScreen
+import com.example.app.ui.tabs.ProfileScreen
+import com.example.app.ui.tabs.VideoDetailScreen
+import com.example.app.ui.tabs.VideoScreen
 import com.example.app.models.VideoViewModel
-import com.example.app.components.AppHeader
-import com.example.app.components.BottomNavBar
+import com.example.app.ui.components.AppHeader
+import com.example.app.ui.components.BottomNavBar
 
 fun getTitleForRoute(route: String?): String {
-    return when {
-        route == null -> "Farm Hub"
-        route == HomeTab.Intro.route -> "Farm Hub"
-        route == HomeTab.Help.route -> "Help Center"
-        route == HomeTab.Video.route -> "Video Tutorials"
-        route == HomeTab.Profile.route -> "Profile"
-        route == HomeTab.Chat.route -> "Chat"
+    return when (route) {
+        null -> "Farm Hub"
+        HomeTab.Intro.route -> "Farm Hub"
+        HomeTab.Help.route -> "Help Center"
+        HomeTab.Video.route -> "Video Tutorials"
+        HomeTab.Profile.route -> "Profile"
+        HomeTab.Chat.route -> "Chat"
         else -> "Farm Hub"
     }
 }
@@ -65,7 +65,16 @@ fun AppNavigation(onToggleTheme: () -> Unit) {
         // Auth
         composable(HomeTab.Auth.route) {
             AuthScreen(
-                onLoginSuccess = { /* navigate somewhere after login */ }
+                onLoginSuccess = {
+                    navController.navigate(HomeTab.Video.route) {
+                        popUpTo(HomeTab.Auth.route) { inclusive = true }
+                    }
+                },
+                onSignupSuccess = {
+                    navController.navigate(HomeTab.Video.route) {
+                        popUpTo(HomeTab.Auth.route) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -103,7 +112,6 @@ fun AppNavigation(onToggleTheme: () -> Unit) {
                 }
             }
         }
-
 
         // Profile
         composable(HomeTab.Profile.route) {

@@ -1,4 +1,4 @@
-package com.example.app.ui.theme
+package com.example.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.mutableStateOf

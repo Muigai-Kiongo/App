@@ -19,23 +19,31 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.R
 import com.example.app.ui.theme.GreenColor
+import com.example.app.viewmodel.LoginViewModel
+import com.example.app.models.login.LoginResponse
+import com.example.app.models.signup.RegisterRequest
+import com.example.app.models.signup.RegisterResponse
+import com.example.app.viewmodel.SignupViewModel
 
 @Composable
-fun AuthScreen(onLoginSuccess: () -> Unit) {
+fun AuthScreen(
+    onLoginSuccess: (LoginResponse) -> Unit,
+    onSignupSuccess: (RegisterResponse) -> Unit
+) {
     var isLoginScreen by remember { mutableStateOf(true) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center // Center content vertically and horizontally
+        contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
             Image(
                 painter = painterResource(id = R.drawable.farmhub_logo),
                 contentDescription = "App Logo",
@@ -53,21 +61,35 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
             } else {
                 SignupForm(
                     onSwitchToLogin = { isLoginScreen = true },
-                    onSignupSuccess = { /* Handle signup success */ }
+                    onSignupSuccess = onSignupSuccess
                 )
             }
         }
     }
 }
 
+
 @Composable
 fun LoginForm(
     onSwitchToSignup: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: (LoginResponse) -> Unit,
+    viewModel: LoginViewModel = viewModel()
 ) {
-    var email by remember { mutableStateOf(TextFieldValue("")) }
+    var phone by remember { mutableStateOf(TextFieldValue("")) }
     var password by remember { mutableStateOf(TextFieldValue("")) }
     var passwordVisibility by remember { mutableStateOf(false) }
+
+    val isLoading = viewModel.isLoading
+    val errorMessage = viewModel.loginError
+    val loginResult = viewModel.loginResult
+
+    // Success effect
+    LaunchedEffect(loginResult) {
+        loginResult?.let {
+            onLoginSuccess(it)
+            viewModel.clearState()
+        }
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -79,10 +101,11 @@ fun LoginForm(
         )
 
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email or Phone") },
+            value = phone,
+            onValueChange = { phone = it },
+            label = { Text("Phone (e.g. 0712345678)") },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -109,8 +132,31 @@ fun LoginForm(
             modifier = Modifier.fillMaxWidth()
         )
 
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(32.dp)
+            )
+        }
+
         Button(
-            onClick = onLoginSuccess,
+            onClick = {
+                if (phone.text.isBlank() || password.text.isBlank()) {
+                    viewModel.loginError = "Please enter both phone and password."
+                } else {
+                    viewModel.login(phone.text, password.text)
+                }
+            },
+            enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp),
@@ -149,7 +195,8 @@ fun LoginForm(
 @Composable
 fun SignupForm(
     onSwitchToLogin: () -> Unit,
-    onSignupSuccess: () -> Unit
+    onSignupSuccess: (RegisterResponse) -> Unit,
+    viewModel: SignupViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf(TextFieldValue("")) }
     var phone by remember { mutableStateOf(TextFieldValue("")) }
@@ -160,6 +207,18 @@ fun SignupForm(
     var passwordVisibility by remember { mutableStateOf(false) }
     var confirmPasswordVisibility by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
+
+    val isLoading = viewModel.isLoading
+    val errorMessage = viewModel.signupError
+    val signupResult = viewModel.signupResult
+
+    // Success effect
+    LaunchedEffect(signupResult) {
+        signupResult?.let {
+            onSignupSuccess(it)
+            viewModel.clearState()
+        }
+    }
 
     val kenyanCounties = listOf(
         "Mombasa", "Kwale", "Kilifi", "Tana River", "Lamu",
@@ -208,11 +267,9 @@ fun SignupForm(
             modifier = compactTextField()
         )
 
-        // Enhanced Phone Number Field (Integer-only input)
         OutlinedTextField(
             value = phone,
             onValueChange = { newValue ->
-                // Only allow numeric input
                 if (newValue.text.isBlank() || newValue.text.matches(Regex("^\\d+\$"))) {
                     phone = newValue
                 }
@@ -223,7 +280,6 @@ fun SignupForm(
             modifier = compactTextField()
         )
 
-        // County Dropdown
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = it }
@@ -311,8 +367,47 @@ fun SignupForm(
             modifier = Modifier.padding(vertical = 4.dp)
         )
 
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(32.dp)
+            )
+        }
+
         Button(
-            onClick = onSignupSuccess,
+            onClick = {
+                if (
+                    fullName.text.isBlank() ||
+                    email.text.isBlank() ||
+                    phone.text.isBlank() ||
+                    county.isBlank() ||
+                    password.text.isBlank() ||
+                    confirmPassword.text.isBlank()
+                ) {
+                    viewModel.signupError = "Please fill in all fields."
+                } else if (password.text != confirmPassword.text) {
+                    viewModel.signupError = "Passwords do not match."
+                } else {
+                    val req = RegisterRequest(
+                        fullName = fullName.text,
+                        email = email.text,
+                        phone = phone.text,
+                        county = county,
+                        password = password.text
+                    )
+                    viewModel.signup(req)
+                }
+            },
+            enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp),
