@@ -74,12 +74,7 @@ fun IntroScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Text(
-                        text = "Farm Help",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        textAlign = TextAlign.Center
-                    )
+
                     Text(
                         text = "Ask questions and get expert advice on farming.",
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
@@ -118,12 +113,7 @@ fun IntroScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Text(
-                        text = "Farm Videos",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        textAlign = TextAlign.Center
-                    )
+                   
                     Text(
                         text = "Watch free videos and learn more about farming.",
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),

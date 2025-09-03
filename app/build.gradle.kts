@@ -44,6 +44,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
+
     // Jetpack Compose libraries
     implementation(platform(libs.androidx.compose.bom)) // BOM for Compose
     implementation(libs.androidx.ui) // Compose UI
@@ -67,4 +71,10 @@ dependencies {
     // Debugging libraries
     debugImplementation(libs.androidx.ui.tooling) // Tooling support for debugging
     debugImplementation(libs.androidx.ui.test.manifest) // Manifest for UI testing
+
+
+
+
+
+
 }
