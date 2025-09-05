@@ -59,7 +59,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.kt.coil.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.compose.material) // Material3 components
+    implementation(libs.androidx.compose.material)
+    implementation(libs.espresso.core) // Material3 components
 
     // Testing libraries
     testImplementation(libs.junit) // Unit testing

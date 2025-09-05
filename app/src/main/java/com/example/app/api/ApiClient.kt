@@ -5,7 +5,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
-    private const val BASE_URL = "http://127.0.0.1:8080/" // Replace with your API host if different
+    private const val BASE_URL = "https://622eaa252277.ngrok-free.app" // Replace with your API host if different
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()

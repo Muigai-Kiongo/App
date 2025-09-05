@@ -16,6 +16,7 @@ coilCompose = "2.2.2"
 coilComposeVersion = "2.7.0"
 lifecycleViewmodelCompose = "2.9.2"
 composeMaterial = "1.4.1"
+espressoCoreVersion = "3.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +41,7 @@ coil-compose = { group = "o.coil-kt", name = "coil-compose", version.ref = "coil
 coil-kt-coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilComposeVersion" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCoreVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
