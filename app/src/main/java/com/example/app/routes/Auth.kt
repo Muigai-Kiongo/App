@@ -95,7 +95,6 @@ fun AuthScreen(
     }
 }
 
-
 @Composable
 fun LoginForm(
     onSwitchToSignup: () -> Unit,
@@ -105,16 +104,21 @@ fun LoginForm(
     var phone by remember { mutableStateOf(TextFieldValue("")) }
     var password by remember { mutableStateOf(TextFieldValue("")) }
     var passwordVisibility by remember { mutableStateOf(false) }
+    var globalError by remember { mutableStateOf<String?>(null) }
 
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.loginError
     val loginResult = viewModel.loginResult
 
-    // Success effect
+    // Success effect with error boundary
     LaunchedEffect(loginResult) {
-        loginResult?.let {
-            onLoginSuccess(it)
-            viewModel.clearState()
+        try {
+            loginResult?.let {
+                onLoginSuccess(it)
+                viewModel.clearState()
+            }
+        } catch (e: Exception) {
+            globalError = e.localizedMessage ?: "An unexpected error occurred."
         }
     }
 
@@ -167,6 +171,20 @@ fun LoginForm(
             )
         }
 
+        if (globalError != null) {
+            Text(
+                text = globalError ?: "An error occurred.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Button(
+                onClick = { globalError = null },
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Text("Try Again")
+            }
+        }
+
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier
@@ -177,10 +195,14 @@ fun LoginForm(
 
         Button(
             onClick = {
-                if (phone.text.isBlank() || password.text.isBlank()) {
-                    viewModel.loginError = "Please enter both phone and password."
-                } else {
-                    viewModel.login(phone.text, password.text)
+                try {
+                    if (phone.text.isBlank() || password.text.isBlank()) {
+                        viewModel.loginError = "Please enter both phone and password."
+                    } else {
+                        viewModel.login(phone.text, password.text)
+                    }
+                } catch (e: Exception) {
+                    globalError = e.localizedMessage ?: "An unexpected error occurred."
                 }
             },
             enabled = !isLoading,
@@ -234,16 +256,21 @@ fun SignupForm(
     var passwordVisibility by remember { mutableStateOf(false) }
     var confirmPasswordVisibility by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
+    var globalError by remember { mutableStateOf<String?>(null) }
 
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.signupError
     val signupResult = viewModel.signupResult
 
-    // Success effect
+    // Success effect with error boundary
     LaunchedEffect(signupResult) {
-        signupResult?.let {
-            onSignupSuccess(it)
-            viewModel.clearState()
+        try {
+            signupResult?.let {
+                onSignupSuccess(it)
+                viewModel.clearState()
+            }
+        } catch (e: Exception) {
+            globalError = e.localizedMessage ?: "An unexpected error occurred."
         }
     }
 
@@ -402,6 +429,20 @@ fun SignupForm(
             )
         }
 
+        if (globalError != null) {
+            Text(
+                text = globalError ?: "An error occurred.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Button(
+                onClick = { globalError = null },
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Text("Try Again")
+            }
+        }
+
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier
@@ -412,27 +453,31 @@ fun SignupForm(
 
         Button(
             onClick = {
-                if (
-                    names.text.isBlank() ||
-                    email.text.isBlank() ||
-                    phone.text.isBlank() ||
-                    county.isBlank() ||
-                    password.text.isBlank() ||
-                    confirmPassword.text.isBlank()
-                ) {
-                    viewModel.signupError = "Please fill in all fields."
-                } else if (password.text != confirmPassword.text) {
-                    viewModel.signupError = "Passwords do not match."
-                } else {
-                    val req = RegisterRequest(
-                        names = names.text,
-                        email = email.text,
-                        phone = phone.text,
-                        county = county,
-                        subCounty = null,
-                        password = password.text
-                    )
-                    viewModel.signup(req)
+                try {
+                    if (
+                        names.text.isBlank() ||
+                        email.text.isBlank() ||
+                        phone.text.isBlank() ||
+                        county.isBlank() ||
+                        password.text.isBlank() ||
+                        confirmPassword.text.isBlank()
+                    ) {
+                        viewModel.signupError = "Please fill in all fields."
+                    } else if (password.text != confirmPassword.text) {
+                        viewModel.signupError = "Passwords do not match."
+                    } else {
+                        val req = RegisterRequest(
+                            names = names.text,
+                            email = email.text.takeIf { it.isNotBlank() }, // ensure null for blank
+                            phone = phone.text,
+                            county = county.takeIf { it.isNotBlank() },    // ensure null for blank
+                            subCounty = null,
+                            password = password.text
+                        )
+                        viewModel.signup(req)
+                    }
+                } catch (e: Exception) {
+                    globalError = e.localizedMessage ?: "An unexpected error occurred."
                 }
             },
             enabled = !isLoading,

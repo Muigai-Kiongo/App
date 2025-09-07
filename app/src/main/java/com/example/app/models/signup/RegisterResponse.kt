@@ -1,19 +1,19 @@
 package com.example.app.models.signup
 
 data class RegisterResponse(
-    val user: RegisteredUser,
-    val success: Boolean? = null,
+    val user: RegisteredUser? = null,
+    val status: String? = null,
     val message: String? = null
 )
 
 data class RegisteredUser(
-    val id: String,
-    val createdAt: String,
-    val updatedAt: String,
-    val names: String,
-    val email: String?,
-    val role: String,
-    val phone: String,
-    val county: String?,
-    val subCounty: String?
+    val id: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val names: String? = null,
+    val email: String? = null,
+    val role: String? = null,
+    val phone: String? = null,
+    val county: String? = null,
+    val subCounty: String? = null
 )

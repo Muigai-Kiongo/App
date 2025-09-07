@@ -20,16 +20,21 @@ class SignupViewModel : ViewModel() {
     fun signup(registerRequest: RegisterRequest) {
         signupError = null
         isLoading = true
-        repository.signup(registerRequest,
-            onResult = {
-                isLoading = false
-                signupResult = it
-            },
-            onError = {
-                isLoading = false
-                signupError = it
-            }
-        )
+        try {
+            repository.signup(registerRequest,
+                onResult = { response ->
+                    isLoading = false
+                    signupResult = response
+                },
+                onError = { errorMsg ->
+                    isLoading = false
+                    signupError = errorMsg ?: "Unknown error"
+                }
+            )
+        } catch (e: Exception) {
+            isLoading = false
+            signupError = e.localizedMessage ?: "Unexpected error"
+        }
     }
 
     fun clearState() {

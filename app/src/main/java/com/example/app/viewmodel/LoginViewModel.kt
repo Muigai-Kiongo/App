@@ -19,16 +19,21 @@ class LoginViewModel : ViewModel() {
     fun login(phone: String, password: String) {
         loginError = null
         isLoading = true
-        repository.login(phone, password,
-            onResult = {
-                isLoading = false
-                loginResult = it
-            },
-            onError = {
-                isLoading = false
-                loginError = it
-            }
-        )
+        try {
+            repository.login(phone, password,
+                onResult = {
+                    isLoading = false
+                    loginResult = it
+                },
+                onError = {
+                    isLoading = false
+                    loginError = it
+                }
+            )
+        } catch (e: Exception) {
+            isLoading = false
+            loginError = e.localizedMessage ?: "Unexpected error occurred. Please try again."
+        }
     }
 
     fun clearState() {

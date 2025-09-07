@@ -2,11 +2,13 @@ package com.example.app.api
 
 import com.example.app.models.login.LoginResponse
 import com.example.app.models.login.LoginRequest
+import com.example.app.models.profile.UserProfileResponse
 import com.example.app.models.signup.RegisterRequest
 import com.example.app.models.signup.RegisterResponse
 
 import retrofit2.Call
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface UserService {
@@ -17,6 +19,9 @@ interface UserService {
 
     @POST("auth/register")
     fun registerUser(@Body registerRequest: RegisterRequest): Call<RegisterResponse>
+
+    @GET("auth/me")
+    fun getUserProfile(): Call<UserProfileResponse>
 
 
 //    @GET("auth/me")
