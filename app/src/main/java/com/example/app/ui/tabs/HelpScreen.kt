@@ -1,7 +1,5 @@
 package com.example.app.ui.tabs
 
-import android.R
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,17 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,37 +18,21 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.example.app.features.ConfirmationDialog
-import com.example.app.features.DescribeStep
-import com.example.app.features.StepIndicator
-import com.example.app.features.SuccessStep
-import com.example.app.features.UploadStep
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app.features.FarmHelp
+import com.example.app.viewmodel.FarmHelpViewModel
 
 @Composable
 fun HelpScreen() {
     var showFarmHelp by remember { mutableStateOf(false) }
+    val farmHelpViewModel: FarmHelpViewModel = viewModel()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -179,9 +151,7 @@ fun HelpScreen() {
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                FarmHelpWizard(
-                    onClose = { showFarmHelp = false }
-                )
+                FarmHelp(viewModel = farmHelpViewModel, onClose = { showFarmHelp = false })
             }
         }
     }
@@ -243,67 +213,3 @@ data class FAQItem(
     val description: String,
     val icon: ImageVector
 )
-
-// Updated FarmHelpWizard: accepts onClose to close overlay
-@Composable
-fun FarmHelpWizard(onClose: () -> Unit) {
-    var currentStep by remember { mutableIntStateOf(1) }
-    var description by remember { mutableStateOf(TextFieldValue("")) }
-    var showConfirmation by remember { mutableStateOf(false) }
-    var selectedImageRes by remember { mutableStateOf<Int?>(null) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StepIndicator(currentStep = currentStep, totalSteps = 3)
-            TextButton(onClick = onClose) {
-                Text("Close")
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        AnimatedContent(targetState = currentStep, label = "Step Animation") { step ->
-            when (step) {
-                1 -> UploadStep(
-                    onNext = {
-                        selectedImageRes = R.drawable.ic_menu_camera // placeholder
-                        currentStep = 2
-                    }
-                )
-                2 -> DescribeStep(
-                    description = description,
-                    selectedImageRes = selectedImageRes,
-                    onDescriptionChange = { description = it },
-                    onSubmit = { showConfirmation = true },
-                    onBack = { currentStep = 1 }
-                )
-                3 -> SuccessStep(
-                    onHome = {
-                        currentStep = 1
-                        description = TextFieldValue("")
-                        selectedImageRes = null
-                        onClose()
-                    }
-                )
-            }
-        }
-
-        if (showConfirmation) {
-            ConfirmationDialog(
-                onConfirm = {
-                    showConfirmation = false
-                    currentStep = 3
-                },
-                onDismiss = { showConfirmation = false }
-            )
-        }
-    }
-}

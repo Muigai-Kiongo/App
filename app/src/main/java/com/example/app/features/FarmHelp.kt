@@ -1,99 +1,131 @@
 package com.example.app.features
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.app.R
-
+import coil.compose.rememberAsyncImagePainter
+import com.example.app.viewmodel.FarmHelpViewModel
 
 @Composable
-fun FarmHelp() {
-    var currentStep by remember { mutableIntStateOf(1) }
-    var description by remember { mutableStateOf(TextFieldValue("")) }
-    var showConfirmation by remember { mutableStateOf(false) }
-    var selectedImageRes by remember { mutableStateOf<Int?>(null) }
+fun FarmHelp(viewModel: FarmHelpViewModel, onClose: (() -> Unit)? = null) {
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Image picker - Gallery
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        viewModel.setSelectedImageUri(uri)
+        if (uri != null) viewModel.nextStep()
+    }
+
+    // Image picker - Camera
+    val cameraImageUri = remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            viewModel.setSelectedImageUri(cameraImageUri.value)
+            if (cameraImageUri.value != null) viewModel.nextStep()
+        }
+    }
+
+    var requestPermissions by remember { mutableStateOf(false) }
+    var launchCameraAfterPermission by remember { mutableStateOf(false) }
+
+    // Permissions handler integration
+    PermissionsHandler(
+        onGranted = {
+            if (launchCameraAfterPermission) {
+                val uri = viewModel.createImageUri(context)
+                cameraImageUri.value = uri
+                cameraLauncher.launch(uri)
+                launchCameraAfterPermission = false
+            }
+            requestPermissions = false
+        },
+        onDenied = {
+            viewModel.setErrorMessage("All permissions (camera & storage) are required!")
+            requestPermissions = false
+            launchCameraAfterPermission = false
+        },
+        requestNow = requestPermissions
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        StepIndicator(currentStep = currentStep, totalSteps = 3)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StepIndicator(currentStep = uiState.currentStep, totalSteps = 3)
+            if (onClose != null) {
+                TextButton(onClick = onClose) {
+                    Text("Close")
+                }
+            }
+        }
 
         Spacer(Modifier.height(16.dp))
 
-        AnimatedContent(targetState = currentStep, label = "Step Animation") { step ->
+        AnimatedContent(targetState = uiState.currentStep, label = "Step Animation") { step ->
             when (step) {
                 1 -> UploadStep(
-                    onNext = {
-                        selectedImageRes = R.drawable.ic_launcher_foreground // Placeholder
-                        currentStep = 2
+                    onGallery = { galleryLauncher.launch("image/*") },
+                    onCamera = {
+                        launchCameraAfterPermission = true
+                        requestPermissions = true
                     }
                 )
                 2 -> DescribeStep(
-                    description = description,
-                    selectedImageRes = selectedImageRes,
-                    onDescriptionChange = { description = it },
-                    onSubmit = { showConfirmation = true },
-                    onBack = { currentStep = 1 }
+                    description = TextFieldValue(uiState.description),
+                    selectedImageUri = uiState.selectedImageUri,
+                    onDescriptionChange = { viewModel.setDescription(it.text) },
+                    onSubmit = { viewModel.showConfirmationDialog(true) },
+                    onBack = { viewModel.prevStep() }
                 )
                 3 -> SuccessStep(onHome = {
-                    currentStep = 1
-                    description = TextFieldValue("")
-                    selectedImageRes = null
+                    viewModel.reset()
+                    onClose?.invoke()
                 })
             }
         }
 
-        if (showConfirmation) {
+        if (uiState.showConfirmation) {
             ConfirmationDialog(
-                onConfirm = {
-                    showConfirmation = false
-                    currentStep = 3
-                },
-                onDismiss = { showConfirmation = false }
+                onConfirm = { viewModel.submitPost(context) },
+                onDismiss = { viewModel.showConfirmationDialog(false) }
             )
+        }
+        uiState.errorMessage?.let {
+            Text(it, color = Color.Red, modifier = Modifier.padding(8.dp))
+        }
+        if (uiState.isLoading) {
+            CircularProgressIndicator(modifier = Modifier.padding(8.dp))
         }
     }
 }
@@ -120,7 +152,7 @@ fun StepIndicator(currentStep: Int, totalSteps: Int) {
 }
 
 @Composable
-fun UploadStep(onNext: () -> Unit) {
+fun UploadStep(onGallery: () -> Unit, onCamera: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -135,28 +167,25 @@ fun UploadStep(onNext: () -> Unit) {
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
-                text = "Take a photo or upload a video of the issue, and our certified officers will help.",
+                text = "Take a photo or upload a photo of the issue, and our certified officers will help.",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-
         Spacer(modifier = Modifier.height(32.dp))
-
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Button(
-                onClick = onNext,
+                onClick = onCamera,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.PhotoCamera, contentDescription = "Take Photo")
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Take a Photo")
             }
-
             Button(
-                onClick = onNext,
+                onClick = onGallery,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Image, contentDescription = "Upload from Gallery")
@@ -170,7 +199,7 @@ fun UploadStep(onNext: () -> Unit) {
 @Composable
 fun DescribeStep(
     description: TextFieldValue,
-    selectedImageRes: Int?,
+    selectedImageUri: Uri?,
     onDescriptionChange: (TextFieldValue) -> Unit,
     onSubmit: () -> Unit,
     onBack: () -> Unit
@@ -181,13 +210,12 @@ fun DescribeStep(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Explain The Video or Photo",
+            text = "Explain The Photo",
             style = MaterialTheme.typography.headlineSmall
         )
-
-        selectedImageRes?.let {
+        selectedImageUri?.let {
             Image(
-                painter = painterResource(id = it),
+                painter = rememberAsyncImagePainter(it),
                 contentDescription = "Preview",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -196,7 +224,6 @@ fun DescribeStep(
                 contentScale = ContentScale.Crop
             )
         }
-
         OutlinedTextField(
             value = description,
             onValueChange = onDescriptionChange,
@@ -205,7 +232,6 @@ fun DescribeStep(
             maxLines = 5,
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
         )
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth()
@@ -213,9 +239,7 @@ fun DescribeStep(
             OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier.weight(1f)
-            ) {
-                Text("Back")
-            }
+            ) { Text("Back") }
             Button(
                 onClick = onSubmit,
                 modifier = Modifier.weight(1f),
@@ -270,16 +294,6 @@ fun SuccessStep(onHome: () -> Unit) {
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onHome) {
             Text("Go Back")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun FarmHelpPreview() {
-    MaterialTheme {
-        Surface {
-            FarmHelp()
         }
     }
 }
