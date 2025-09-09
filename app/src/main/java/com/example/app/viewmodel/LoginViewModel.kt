@@ -24,6 +24,7 @@ class LoginViewModel : ViewModel() {
                 onResult = {
                     isLoading = false
                     loginResult = it
+                    // Removed: UserSession.setSessionFromLoginResponse(it)
                 },
                 onError = {
                     isLoading = false

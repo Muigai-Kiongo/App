@@ -3,6 +3,7 @@ package com.example.app.repository
 import com.example.app.api.ApiClient
 import com.example.app.models.login.LoginRequest
 import com.example.app.models.login.LoginResponse
+import com.example.app.session.UserSession
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -24,9 +25,12 @@ class LoginRepository {
                     ) {
                         try {
                             if (response.isSuccessful && response.body() != null) {
+                                val loginResponse = response.body()!!
                                 // Store token for Bearer authentication
-                                ApiClient.setBearerToken(response.body()!!.token)
-                                onResult(response.body())
+                                ApiClient.setBearerToken(loginResponse.token)
+                                // Store user session data for later use (phone, id, etc.)
+                                UserSession.setSessionFromLoginResponse(loginResponse)
+                                onResult(loginResponse)
                             } else {
                                 onError("Invalid credentials or server error.")
                             }

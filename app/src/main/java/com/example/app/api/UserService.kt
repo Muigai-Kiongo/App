@@ -2,7 +2,6 @@ package com.example.app.api
 
 import com.example.app.models.login.LoginRequest
 import com.example.app.models.login.LoginResponse
-import com.example.app.models.message.SendMessageRequest
 import com.example.app.models.message.SendMessageResponse
 import com.example.app.models.posts.CreatePostResponse
 import com.example.app.models.posts.GetAllPostsResponse
@@ -30,6 +29,8 @@ interface UserService {
     @GET("auth/me")
     fun getUserProfile(): Call<UserProfileResponse>
 
+    @GET("posts")
+    fun getAllPosts(): Call<GetAllPostsResponse>
 
     @Multipart
     @POST("posts")
@@ -38,12 +39,14 @@ interface UserService {
         @Part("description") description: RequestBody
     ): Call<CreatePostResponse>
 
-    @GET("posts")
-    fun getAllPosts(): Call<GetAllPostsResponse>
 
+    @Multipart
     @POST("messaging")
-    fun sendMessage(@Body sendMessageRequest: SendMessageRequest): Call<SendMessageResponse>
-
+    fun sendMessageWithAttachment(
+        @Part("text") text: RequestBody,
+        @Part("phone") phone: RequestBody,
+        @Part attachment: MultipartBody.Part?
+    ): Call<SendMessageResponse>
 
 
 

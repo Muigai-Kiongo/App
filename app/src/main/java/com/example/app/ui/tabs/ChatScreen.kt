@@ -5,55 +5,41 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.app.repository.MessageRepository
 import com.example.app.viewmodel.MessageViewModel
 import com.example.app.viewmodel.SendMessageUiState
 
 sealed class MessageContent {
     data class TextMessage(val text: String) : MessageContent()
-    data class MediaMessage(val uri: Uri) : MessageContent()
+    data class MediaMessage(val uri: Uri, val description: String? = null) : MessageContent()
 }
 
 data class Message(val sender: String, val content: MessageContent)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(viewModel: MessageViewModel = remember { MessageViewModel() }) {
+fun ChatScreen() {
+    val context = LocalContext.current
+    val viewModel = remember { MessageViewModel(MessageRepository(context)) }
+
     val messages = remember {
         mutableStateListOf(
             Message("Bot", MessageContent.TextMessage("Hello! How can I assist you today?")),
@@ -63,6 +49,8 @@ fun ChatScreen(viewModel: MessageViewModel = remember { MessageViewModel() }) {
     }
 
     var inputText by remember { mutableStateOf("") }
+    var pendingAttachment by remember { mutableStateOf<Uri?>(null) }
+    var pendingAttachmentDescription by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
 
     // Gallery picker
@@ -70,17 +58,7 @@ fun ChatScreen(viewModel: MessageViewModel = remember { MessageViewModel() }) {
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            messages.add(Message("User", MessageContent.MediaMessage(it)))
-        }
-    }
-
-    // Camera capture
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        bitmap?.let {
-            // Convert bitmap to Image via Coil (preview only, not persisted)
-            // For real apps, save to file first and return Uri
+            pendingAttachment = it
         }
     }
 
@@ -90,9 +68,14 @@ fun ChatScreen(viewModel: MessageViewModel = remember { MessageViewModel() }) {
             is SendMessageUiState.Success -> {
                 val response = (uiState as SendMessageUiState.Success).response
                 messages.add(
-                    Message("Bot", MessageContent.TextMessage("ID: ${response.message}\nStatus: ${response.status}"))
+                    Message(
+                        "Bot",
+                        MessageContent.TextMessage("ID: ${response.message}\nStatus: ${response.status}")
+                    )
                 )
                 viewModel.resetState()
+                pendingAttachment = null
+                pendingAttachmentDescription = ""
             }
             is SendMessageUiState.Error -> {
                 val error = (uiState as SendMessageUiState.Error).message
@@ -108,12 +91,25 @@ fun ChatScreen(viewModel: MessageViewModel = remember { MessageViewModel() }) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp)
+            .background(Color.White)
     ) {
+        // App Header
+        TopAppBar(
+            title = { Text("FarmHub Chat", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color(0xFF388E3C),
+                titleContentColor = Color.White
+            )
+        )
+
+        // Chat messages list
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             reverseLayout = true
         ) {
@@ -122,43 +118,99 @@ fun ChatScreen(viewModel: MessageViewModel = remember { MessageViewModel() }) {
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Pending attachment awaiting description
+        if (pendingAttachment != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFE8F5E9), shape = RoundedCornerShape(12.dp))
+                    .padding(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = rememberAsyncImagePainter(pendingAttachment),
+                        contentDescription = "Attachment Preview",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(Color.LightGray, shape = RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    TextField(
+                        value = pendingAttachmentDescription,
+                        onValueChange = { pendingAttachmentDescription = it },
+                        placeholder = { Text("Describe your attachment...") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        maxLines = 3,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        )
+                    )
+                    IconButton(onClick = {
+                        pendingAttachment = null
+                        pendingAttachmentDescription = ""
+                    }) {
+                        Icon(Icons.Default.AttachFile, contentDescription = "Remove Attachment", tint = Color(0xFF388E3C))
+                    }
+                }
+            }
+        }
 
+        // Message input & send bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(4.dp),
+                .background(Color.White)
+                .padding(start = 8.dp, end = 8.dp, bottom = 10.dp, top = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { galleryLauncher.launch("image/*") }) {
+            IconButton(
+                onClick = { galleryLauncher.launch("image/*") }
+            ) {
                 Icon(imageVector = Icons.Default.AttachFile, contentDescription = "Attach")
             }
-            IconButton(onClick = { cameraLauncher.launch(null) }) {
-                Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Camera")
-            }
+
             TextField(
                 value = inputText,
                 onValueChange = { inputText = it },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .background(Color.White),
                 placeholder = { Text("Type a message...") },
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF0F0F0),
-                    unfocusedContainerColor = Color(0xFFF0F0F0),
-                    disabledContainerColor = Color(0xFFF0F0F0),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
-                )
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                maxLines = 4
             )
 
             val isSending = uiState is SendMessageUiState.Loading
             IconButton(
                 enabled = !isSending,
                 onClick = {
-                    if (inputText.isNotBlank()) {
+                    if (pendingAttachment != null) {
+                        // Send attachment and its description
+                        messages.add(
+                            Message(
+                                "User",
+                                MessageContent.MediaMessage(pendingAttachment!!, pendingAttachmentDescription)
+                            )
+                        )
+                        viewModel.sendMessage(pendingAttachmentDescription, pendingAttachment)
+                        pendingAttachment = null
+                        pendingAttachmentDescription = ""
+                        inputText = ""
+                    } else if (inputText.isNotBlank()) {
+                        // Send plain text
                         messages.add(Message("User", MessageContent.TextMessage(inputText)))
-                        viewModel.sendMessage(inputText)
+                        viewModel.sendMessage(inputText, null)
                         inputText = ""
                     }
                 }
@@ -194,14 +246,24 @@ fun ChatBubble(message: Message) {
                     )
                 }
                 is MessageContent.MediaMessage -> {
-                    Image(
-                        painter = rememberAsyncImagePainter(content.uri),
-                        contentDescription = "Media",
-                        modifier = Modifier
-                            .size(200.dp)
-                            .background(Color.LightGray, shape = RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                    Column {
+                        Image(
+                            painter = rememberAsyncImagePainter(content.uri),
+                            contentDescription = "Media",
+                            modifier = Modifier
+                                .size(200.dp)
+                                .background(Color.LightGray, shape = RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        if (!content.description.isNullOrBlank()) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = content.description,
+                                fontSize = 14.sp,
+                                color = Color.DarkGray
+                            )
+                        }
+                    }
                 }
             }
         }
