@@ -17,12 +17,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.app.features.HomeTab
+import com.example.app.features.AppRoutes
 
 @Composable
 fun VideoCard(
     video: com.example.app.models.VideoItem,
-    navController: NavHostController? = null, // optional
+    navController: NavHostController? = null,
     showMeta: Boolean = true,
     onClick: (() -> Unit)? = null
 ) {
@@ -32,7 +32,7 @@ fun VideoCard(
             .clickable {
                 // Use custom action if provided, else default navigation
                 onClick?.invoke() ?: navController?.navigate(
-                    HomeTab.VideoDetail.createRoute(video.id)
+                    AppRoutes.VIDEO_DETAIL.replace("{videoId}", video.id.toString())
                 )
             }
     ) {

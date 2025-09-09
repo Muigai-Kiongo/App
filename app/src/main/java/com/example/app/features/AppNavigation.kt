@@ -1,143 +1,191 @@
 package com.example.app.features
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.app.auth.AuthManager
 import com.example.app.routes.AuthScreen
 import com.example.app.routes.IntroScreen
-import com.example.app.ui.tabs.ChatScreen
 import com.example.app.ui.tabs.HelpScreen
 import com.example.app.ui.tabs.ProfileScreen
-import com.example.app.ui.tabs.VideoDetailScreen
+import com.example.app.ui.tabs.ChatScreen
 import com.example.app.ui.tabs.VideoScreen
-import com.example.app.models.VideoViewModel
-import com.example.app.ui.components.AppHeader
 import com.example.app.ui.components.BottomNavBar
+import com.example.app.ui.components.AppHeader
+import com.example.app.ui.tabs.VideoDetailScreen
 
-fun getTitleForRoute(route: String?): String {
-    return when (route) {
-        null -> "Farm Hub"
-        HomeTab.Intro.route -> "Farm Hub"
-        HomeTab.Help.route -> "Help Center"
-        HomeTab.Video.route -> "Video Tutorials"
-        HomeTab.Profile.route -> "Profile"
-        HomeTab.Chat.route -> "Chat"
-        else -> "Farm Hub"
-    }
-}
-
+@SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun AppNavigation(onToggleTheme: () -> Unit) {
-    val navController = rememberNavController()
-    val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = currentBackStackEntry?.destination?.route
+fun AppNavigation(
+    navController: NavHostController,
+    onToggleTheme: () -> Unit
+) {
+    val context = LocalContext.current
+    var isLoggedIn by remember { mutableStateOf(AuthManager.isLoggedIn(context)) }
 
-    // Shared ViewModel across screens
-    val videoViewModel: VideoViewModel = viewModel()
+    // Track current route for bottom nav reactively
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: AppRoutes.INTRO
+
+    // Observe auth state
+    LaunchedEffect(Unit) {
+        AuthManager.addAuthStateListener(context) { loggedIn ->
+            isLoggedIn = loggedIn
+        }
+    }
 
     NavHost(
         navController = navController,
-        startDestination = HomeTab.Intro.route,
-        modifier = Modifier.fillMaxSize()
+        startDestination = AppRoutes.INTRO
     ) {
-        // Intro
-        composable(HomeTab.Intro.route) {
+        composable(AppRoutes.INTRO) {
+            // Standalone: No header/bottom nav
             IntroScreen(
-                onFarmHelpClick = {
-                    navController.navigate(HomeTab.Help.route) {
-                        popUpTo(HomeTab.Intro.route) { inclusive = true }
-                    }
+                onFarmHelpClick = { navController.navigate(AppRoutes.HELP) },
+                onVideosClick = {
+                    if (isLoggedIn) navController.navigate(AppRoutes.VIDEOS)
+                    else navController.navigate(AppRoutes.AUTH)
                 },
-                onSignupClick = { navController.navigate(HomeTab.Auth.route) }
             )
         }
-
-        // Auth
-        composable(HomeTab.Auth.route) {
+        composable(AppRoutes.AUTH) {
+            // Standalone: No header/bottom nav
             AuthScreen(
                 onLoginSuccess = {
-                    navController.navigate(HomeTab.Video.route) {
-                        popUpTo(HomeTab.Auth.route) { inclusive = true }
+                    isLoggedIn = true
+                    navController.navigate(AppRoutes.INTRO) {
+                        popUpTo(AppRoutes.AUTH) { inclusive = true }
                     }
                 },
                 onSignupSuccess = {
-                    navController.navigate(HomeTab.Video.route) {
-                        popUpTo(HomeTab.Auth.route) { inclusive = true }
+                    navController.navigate(AppRoutes.AUTH) {
+                        popUpTo(AppRoutes.AUTH) { inclusive = true }
                     }
                 }
             )
         }
-
-        // Help
-        composable(HomeTab.Help.route) {
-            ScaffoldWrapper(navController, currentRoute) { HelpScreen() }
+        composable(AppRoutes.HELP) {
+            AppScaffold(
+                navController = navController,
+                currentRoute = currentRoute,
+                isLoggedIn = isLoggedIn,
+                onToggleTheme = onToggleTheme
+            ) {
+                HelpScreen(
+                    onChatClick = {
+                        if (isLoggedIn) navController.navigate(AppRoutes.CHAT)
+                        else navController.navigate(AppRoutes.AUTH)
+                    },
+                    onVideosClick = {
+                        if (isLoggedIn) navController.navigate(AppRoutes.VIDEOS)
+                        else navController.navigate(AppRoutes.AUTH)
+                    }
+                )
+            }
         }
-
-        // Video Feed
-        composable(HomeTab.Video.route) {
-            ScaffoldWrapper(navController, currentRoute) {
-                VideoScreen(
-                    navController = navController,
+        composable(AppRoutes.PROFILE) {
+            AppScaffold(
+                navController = navController,
+                currentRoute = currentRoute,
+                isLoggedIn = isLoggedIn,
+                onToggleTheme = onToggleTheme
+            ) {
+                ProfileScreen(
+                    onToggleTheme = onToggleTheme,
+                    isLoggedIn = isLoggedIn,
+                    onSignInClick = { navController.navigate(AppRoutes.AUTH) },
+                    onSignOutClick = {
+                        AuthManager.logout(context)
+                        isLoggedIn = false
+                        navController.navigate(AppRoutes.AUTH) {
+                            popUpTo(AppRoutes.INTRO) { inclusive = false }
+                        }
+                    }
                 )
             }
         }
 
-        // Video Detail with comments + related videos
-        composable(
-            route = HomeTab.VideoDetail.route
-        ) { backStackEntry ->
-            val videoId = backStackEntry.arguments?.getString("videoId")?.toIntOrNull()
-            val video = videoId?.let { videoViewModel.getVideoById(it) }
-
-            if (video != null) {
-                ScaffoldWrapper(navController, currentRoute) {
-                    VideoDetailScreen(
-                        videoId = videoId,
-                        videoViewModel = videoViewModel,
-                        onVideoClick = { selectedId ->
-                            navController.navigate("videoDetail/$selectedId")
-                        }
-                    )
-
+        composable(AppRoutes.VIDEOS) {
+            AppScaffold(
+                navController = navController,
+                currentRoute = currentRoute,
+                isLoggedIn = isLoggedIn,
+                onToggleTheme = onToggleTheme
+            ) {
+                if (isLoggedIn) {
+                    VideoScreen(navController = navController)
+                } else {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(AppRoutes.AUTH)
+                    }
                 }
             }
         }
 
-        // Profile
-        composable(HomeTab.Profile.route) {
-            ScaffoldWrapper(navController, currentRoute) {
-                ProfileScreen(onToggleTheme = onToggleTheme)
+        composable(
+            route = "video_detail/{videoId}",
+            arguments = listOf(navArgument("videoId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val videoId = backStackEntry.arguments?.getInt("videoId") ?: return@composable
+            AppScaffold(
+                navController = navController,
+                currentRoute = currentRoute,
+                isLoggedIn = isLoggedIn,
+                onToggleTheme = onToggleTheme
+            ) {
+                VideoDetailScreen(
+                    videoId = videoId,
+                    onVideoClick = { nextId ->
+                        navController.navigate("video_detail/$nextId")
+                    }
+                )
             }
         }
 
-        // Chat
-        composable(HomeTab.Chat.route) {
-            ScaffoldWrapper(navController, currentRoute) { ChatScreen() }
+        composable(AppRoutes.CHAT) {
+            AppScaffold(
+                navController = navController,
+                currentRoute = currentRoute,
+                isLoggedIn = isLoggedIn,
+                onToggleTheme = onToggleTheme
+            ) {
+                if (isLoggedIn) {
+                    ChatScreen()
+                } else {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(AppRoutes.AUTH)
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun ScaffoldWrapper(
+private fun AppScaffold(
     navController: NavHostController,
-    currentRoute: String?,
+    currentRoute: String,
+    isLoggedIn: Boolean,
+    onToggleTheme: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Scaffold(
         topBar = {
             AppHeader(
-                title = getTitleForRoute(currentRoute),
-                onChatClick = { navController.navigate(HomeTab.Chat.route) },
+                title = "Farm Hub",
+                onChatClick = {
+                    if (isLoggedIn) navController.navigate(AppRoutes.CHAT)
+                    else navController.navigate(AppRoutes.AUTH)
+                }
             )
         },
         bottomBar = {
@@ -145,7 +193,9 @@ fun ScaffoldWrapper(
                 currentRoute = currentRoute,
                 onTabSelected = { route ->
                     navController.navigate(route) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
                         launchSingleTop = true
                         restoreState = true
                     }
@@ -153,11 +203,7 @@ fun ScaffoldWrapper(
             )
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
+        Surface(modifier = Modifier.padding(innerPadding)) {
             content()
         }
     }

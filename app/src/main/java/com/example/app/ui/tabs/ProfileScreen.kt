@@ -25,9 +25,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.R
 import com.example.app.viewmodel.ProfileViewModel
+import com.example.app.auth.AuthManager
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen(onToggleTheme: () -> Unit, viewModel: ProfileViewModel = viewModel()) {
+fun ProfileScreen(
+    onToggleTheme: () -> Unit,
+    isLoggedIn: Boolean,
+    onSignInClick: () -> Unit,
+    onSignOutClick: () -> Unit,
+    viewModel: ProfileViewModel = viewModel()
+) {
     LaunchedEffect(Unit) {
         viewModel.fetchProfile()
     }
@@ -35,7 +44,10 @@ fun ProfileScreen(onToggleTheme: () -> Unit, viewModel: ProfileViewModel = viewM
     val profile = viewModel.profile?.data
     val error = viewModel.error
     val isLoading = viewModel.isLoading
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
+    // No Scaffold, header, or bottom nav here. Only content.
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -98,7 +110,6 @@ fun ProfileScreen(onToggleTheme: () -> Unit, viewModel: ProfileViewModel = viewM
                 if (profile.subCounty != null) {
                     Text("SubCounty: ${profile.subCounty}", fontSize = 14.sp)
                 }
-
             }
         }
 
@@ -115,6 +126,33 @@ fun ProfileScreen(onToggleTheme: () -> Unit, viewModel: ProfileViewModel = viewM
             PreferenceItem(icon = Icons.Default.DarkMode, title = "Dark Mode") { onToggleTheme() }
             PreferenceItem(icon = Icons.Default.Language, title = "Language") { }
             PreferenceItem(icon = Icons.Default.Settings, title = "Account Settings") { }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Auth toggle button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (isLoggedIn) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            AuthManager.logout(context)
+                            onSignOutClick()
+                        }
+                    }
+                ) {
+                    Text("Sign Out")
+                }
+            } else {
+                Button(
+                    onClick = onSignInClick
+                ) {
+                    Text("Sign In")
+                }
+            }
         }
     }
 }

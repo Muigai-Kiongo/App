@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.app.features.HomeTab
 import com.example.app.ui.theme.GreenColor
+import com.example.app.features.AppRoutes
 
 data class BottomNavItem(
     val route: String,
@@ -28,22 +28,22 @@ fun BottomNavBar(
 ) {
     val items = listOf(
         BottomNavItem(
-            route = HomeTab.Intro.route,
+            route = AppRoutes.INTRO,
             label = "Home",
             icon = { Icon(Icons.Filled.Home, contentDescription = "Home") }
         ),
         BottomNavItem(
-            route = HomeTab.Help.route,
+            route = AppRoutes.HELP,
             label = "Help",
             icon = { Icon(Icons.AutoMirrored.Filled.Help, contentDescription = "Help Center") }
         ),
         BottomNavItem(
-            route = HomeTab.Video.route,
+            route = AppRoutes.VIDEOS,
             label = "Videos",
             icon = { Icon(Icons.Filled.VideoLibrary, contentDescription = "Video Tutorials") }
         ),
         BottomNavItem(
-            route = HomeTab.Profile.route,
+            route = AppRoutes.PROFILE,
             label = "Profile",
             icon = { Icon(Icons.Filled.Person, contentDescription = "User Profile") }
         )

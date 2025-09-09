@@ -23,7 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.PermanentNavigationDrawer
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -37,11 +36,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.app.ui.components.FilterRow
-import com.example.app.ui.components.VideoCard
-import com.example.app.features.HomeTab
 import com.example.app.models.VideoViewModel
 import com.example.app.models.videoFilters
+import com.example.app.ui.components.FilterRow
+import com.example.app.ui.components.VideoCard
+import com.example.app.features.AppRoutes // <-- import AppRoutes for navigation
 import kotlinx.coroutines.launch
 
 @Composable
@@ -74,32 +73,29 @@ fun ModalDrawerScreen(navController: NavHostController) {
         },
         drawerState = drawerState
     ) {
-        Scaffold { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 12.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                ) {
-                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Open Categories")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    FilterRow(
-                        selectedFilter = selectedFilter,
-                        filters = videoFilters
-                    ) { selectedFilter = it }
+                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                    Icon(Icons.Default.Menu, contentDescription = "Open Categories")
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-                VideoFeed(
+                Spacer(modifier = Modifier.width(8.dp))
+                FilterRow(
                     selectedFilter = selectedFilter,
-                    navController = navController
-                )
+                    filters = videoFilters
+                ) { selectedFilter = it }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            VideoFeed(
+                selectedFilter = selectedFilter,
+                navController = navController
+            )
         }
     }
 }
@@ -121,7 +117,7 @@ fun PermanentDrawerScreen(navController: NavHostController) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 12.dp)
             ) {
-                IconButton(onClick = { /* optional */ }) {
+                IconButton(onClick = { /* optional: open/close categories */ }) {
                     Icon(Icons.Default.Menu, contentDescription = "Categories")
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -191,7 +187,7 @@ fun VideoFeed(
     ) {
         items(filteredVideos) { video ->
             VideoCard(video = video) {
-                navController.navigate(HomeTab.VideoDetail.createRoute(video.id))
+                navController.navigate(AppRoutes.VIDEO_DETAIL.replace("{videoId}", video.id.toString()))
             }
         }
     }

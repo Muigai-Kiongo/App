@@ -1,7 +1,9 @@
 package com.example.app.api
 
-import com.example.app.models.login.LoginResponse
 import com.example.app.models.login.LoginRequest
+import com.example.app.models.login.LoginResponse
+import com.example.app.models.message.SendMessageRequest
+import com.example.app.models.message.SendMessageResponse
 import com.example.app.models.posts.CreatePostResponse
 import com.example.app.models.posts.GetAllPostsResponse
 import com.example.app.models.profile.UserProfileResponse
@@ -9,7 +11,6 @@ import com.example.app.models.signup.RegisterRequest
 import com.example.app.models.signup.RegisterResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
-
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -40,19 +41,16 @@ interface UserService {
     @GET("posts")
     fun getAllPosts(): Call<GetAllPostsResponse>
 
+    @POST("messaging")
+    fun sendMessage(@Body sendMessageRequest: SendMessageRequest): Call<SendMessageResponse>
 
-//    @GET("auth/me")
-//    fun profileUser(): Call<ProfileResponse>
-//
+
+
+
 //    @POST("auth/reset-password")
 //    fun resetPass(@Body forgetPassRequest: ForgetPassRequest): Call<ForgetPassResponse>
 //
-//    @Multipart
-//    @POST("posts")
-//    fun postQuestion(
-//        @Part("description") description: RequestBody,
-//        @Part image: MultipartBody.Part
-//    ): Call<PostResponse>
+
 //
 //    @GET("messaging")
 //    fun getThreads(): Call<MessageResponse>

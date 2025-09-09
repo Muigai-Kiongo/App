@@ -28,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,8 +42,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.app.viewmodel.MessageViewModel
+import com.example.app.viewmodel.SendMessageUiState
 
-// Data class for chat messages
 sealed class MessageContent {
     data class TextMessage(val text: String) : MessageContent()
     data class MediaMessage(val uri: Uri) : MessageContent()
@@ -50,7 +53,7 @@ sealed class MessageContent {
 data class Message(val sender: String, val content: MessageContent)
 
 @Composable
-fun ChatScreen() {
+fun ChatScreen(viewModel: MessageViewModel = remember { MessageViewModel() }) {
     val messages = remember {
         mutableStateListOf(
             Message("Bot", MessageContent.TextMessage("Hello! How can I assist you today?")),
@@ -60,6 +63,7 @@ fun ChatScreen() {
     }
 
     var inputText by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
 
     // Gallery picker
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -80,12 +84,32 @@ fun ChatScreen() {
         }
     }
 
+    // Observe send message result
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            is SendMessageUiState.Success -> {
+                val response = (uiState as SendMessageUiState.Success).response
+                messages.add(
+                    Message("Bot", MessageContent.TextMessage("ID: ${response.message}\nStatus: ${response.status}"))
+                )
+                viewModel.resetState()
+            }
+            is SendMessageUiState.Error -> {
+                val error = (uiState as SendMessageUiState.Error).message
+                messages.add(
+                    Message("Bot", MessageContent.TextMessage("Error sending message: $error"))
+                )
+                viewModel.resetState()
+            }
+            else -> {}
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp)
     ) {
-        // Messages list
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -100,7 +124,6 @@ fun ChatScreen() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Input row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -110,7 +133,7 @@ fun ChatScreen() {
             IconButton(onClick = { galleryLauncher.launch("image/*") }) {
                 Icon(imageVector = Icons.Default.AttachFile, contentDescription = "Attach")
             }
-            IconButton(onClick = { /* TODO: implement camera file saving */ }) {
+            IconButton(onClick = { cameraLauncher.launch(null) }) {
                 Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Camera")
             }
             TextField(
@@ -129,10 +152,13 @@ fun ChatScreen() {
                 )
             )
 
+            val isSending = uiState is SendMessageUiState.Loading
             IconButton(
+                enabled = !isSending,
                 onClick = {
                     if (inputText.isNotBlank()) {
                         messages.add(Message("User", MessageContent.TextMessage(inputText)))
+                        viewModel.sendMessage(inputText)
                         inputText = ""
                     }
                 }

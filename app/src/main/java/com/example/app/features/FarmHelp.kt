@@ -1,5 +1,6 @@
 package com.example.app.features
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.app.viewmodel.FarmHelpViewModel
@@ -97,14 +97,14 @@ fun FarmHelp(viewModel: FarmHelpViewModel, onClose: (() -> Unit)? = null) {
                 1 -> UploadStep(
                     onGallery = { galleryLauncher.launch("image/*") },
                     onCamera = {
-                        launchCameraAfterPermission = true
                         requestPermissions = true
+                        launchCameraAfterPermission = true
                     }
                 )
                 2 -> DescribeStep(
-                    description = TextFieldValue(uiState.description),
+                    description = uiState.description,
                     selectedImageUri = uiState.selectedImageUri,
-                    onDescriptionChange = { viewModel.setDescription(it.text) },
+                    onDescriptionChange = { viewModel.setDescription(it) },
                     onSubmit = { viewModel.showConfirmationDialog(true) },
                     onBack = { viewModel.prevStep() }
                 )
@@ -198,9 +198,9 @@ fun UploadStep(onGallery: () -> Unit, onCamera: () -> Unit) {
 
 @Composable
 fun DescribeStep(
-    description: TextFieldValue,
+    description: String,
     selectedImageUri: Uri?,
-    onDescriptionChange: (TextFieldValue) -> Unit,
+    onDescriptionChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -243,7 +243,7 @@ fun DescribeStep(
             Button(
                 onClick = onSubmit,
                 modifier = Modifier.weight(1f),
-                enabled = description.text.isNotBlank()
+                enabled = description.isNotBlank()
             ) {
                 Icon(Icons.Default.Check, contentDescription = "Submit")
                 Spacer(modifier = Modifier.width(8.dp))

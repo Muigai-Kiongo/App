@@ -30,10 +30,14 @@ import com.example.app.features.FarmHelp
 import com.example.app.viewmodel.FarmHelpViewModel
 
 @Composable
-fun HelpScreen() {
+fun HelpScreen(
+    onChatClick: () -> Unit,
+    onVideosClick: () -> Unit
+) {
     var showFarmHelp by remember { mutableStateOf(false) }
     val farmHelpViewModel: FarmHelpViewModel = viewModel()
 
+    // Removed Scaffold and header/bottom nav. Only content below:
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -45,15 +49,12 @@ fun HelpScreen() {
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
             ) {
-                // Header
                 Text(
                     text = "FarmHelp Assistance",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
                 )
-
-                // Description card
                 OutlinedCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -89,8 +90,6 @@ fun HelpScreen() {
                         )
                     }
                 }
-
-                // FAQ section header
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(vertical = 12.dp)
@@ -107,8 +106,6 @@ fun HelpScreen() {
                         modifier = Modifier.size(20.dp)
                     )
                 }
-
-                // FAQ List
                 val faqList = remember {
                     mutableStateListOf(
                         FAQItem("Farm News", "Get the latest agricultural news, policy updates, and farming innovations.", Icons.Default.Info),
@@ -117,7 +114,6 @@ fun HelpScreen() {
                         FAQItem("Crop Tips", "Seasonal cultivation guidance and pest management solutions.", Icons.AutoMirrored.Filled.Help)
                     )
                 }
-
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f)
@@ -126,8 +122,6 @@ fun HelpScreen() {
                         ExpandableFAQCard(faqItem = item)
                     }
                 }
-
-                // Ask a Question button
                 Button(
                     onClick = { showFarmHelp = !showFarmHelp },
                     modifier = Modifier
@@ -140,9 +134,29 @@ fun HelpScreen() {
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(
+                        onClick = onChatClick,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Chat with Officer")
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = onVideosClick,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("View Farm Videos")
+                    }
+                }
             }
-
-            // --- Overlay FarmHelp (covers entire screen) ---
             AnimatedVisibility(
                 visible = showFarmHelp,
                 enter = fadeIn() + slideInVertically(),
@@ -192,7 +206,6 @@ fun ExpandableFAQCard(faqItem: FAQItem) {
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
-
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn() + slideInVertically(),
