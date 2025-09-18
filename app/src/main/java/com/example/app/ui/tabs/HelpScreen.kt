@@ -31,8 +31,6 @@ import com.example.app.viewmodel.FarmHelpViewModel
 
 @Composable
 fun HelpScreen(
-    onChatClick: () -> Unit,
-    onVideosClick: () -> Unit
 ) {
     var showFarmHelp by remember { mutableStateOf(false) }
     val farmHelpViewModel: FarmHelpViewModel = viewModel()
@@ -134,28 +132,7 @@ fun HelpScreen(
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Button(
-                        onClick = onChatClick,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Chat with Officer")
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Button(
-                        onClick = onVideosClick,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("View Farm Videos")
-                    }
-                }
+
             }
             AnimatedVisibility(
                 visible = showFarmHelp,

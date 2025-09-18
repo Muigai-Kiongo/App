@@ -3,40 +3,38 @@ package com.example.app.repository
 import android.content.Context
 import android.net.Uri
 import com.example.app.api.ApiClient
-import com.example.app.models.message.SendMessageResponse
 import com.example.app.session.UserSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import retrofit2.Response
 
-class MessageRepository(private val context: Context) {
-    suspend fun sendMessage(
-        message: String,
-        attachmentUri: Uri?
-    ): Response<SendMessageResponse> = withContext(Dispatchers.IO) {
-        val phone = UserSession.phone ?: throw IllegalStateException("User phone not set")
-        val messageBody = message.toRequestBody("text/plain".toMediaTypeOrNull())
-        val phoneBody = phone.toRequestBody("text/plain".toMediaTypeOrNull())
+class MessageRepository {
 
-        val attachmentPart = attachmentUri?.let { uri ->
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val bytes = inputStream?.readBytes() ?: ByteArray(0)
-            inputStream?.close()
-            val requestFile = bytes.toRequestBody("image/*".toMediaTypeOrNull(), 0, bytes.size)
-            MultipartBody.Part.createFormData(
-                "attachment",
-                "image.jpg",
-                requestFile
-            )
-        }
+    suspend fun createPost(text: String, imageUri: Uri, context: Context): Boolean = withContext(Dispatchers.IO) {
+        val stream = context.contentResolver.openInputStream(imageUri)
+        val bytes = stream?.readBytes()
+        stream?.close()
+        val requestBody = bytes?.let {
+            it.toRequestBody("image/*".toMediaTypeOrNull(), 0, it.size)
+        } ?: return@withContext false
 
-        ApiClient.userService.sendMessageWithAttachment(
-            messageBody,
-            phoneBody,
-            attachmentPart
-        ).execute()
+        val imagePart = MultipartBody.Part.createFormData("image", "attachment.jpg", requestBody)
+        val textPart = text.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        val response = ApiClient.userService.createPost(imagePart, textPart).execute()
+        response.isSuccessful
+    }
+
+    suspend fun sendMessage(text: String): Boolean = withContext(Dispatchers.IO) {
+        val phone = UserSession.phone
+        if (phone.isNullOrBlank()) return@withContext false // Optionally handle session error
+
+        val textPart = text.toRequestBody("text/plain".toMediaTypeOrNull())
+        val phonePart = phone.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        val response = ApiClient.userService.sendMessage(textPart, phonePart).execute()
+        response.isSuccessful
     }
 }

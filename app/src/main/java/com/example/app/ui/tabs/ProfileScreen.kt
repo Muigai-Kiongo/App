@@ -57,7 +57,7 @@ fun ProfileScreen(
             .fillMaxWidth()
             .height(200.dp)) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = painterResource(id = R.drawable.farmhelp_logo_horizontal),
                 contentDescription = "Cover Photo",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -74,7 +74,7 @@ fun ProfileScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    painter = painterResource(id = R.drawable.farmhub_logo),
                     contentDescription = "Profile Photo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

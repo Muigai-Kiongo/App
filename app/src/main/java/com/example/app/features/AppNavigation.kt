@@ -1,11 +1,19 @@
 package com.example.app.features
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -15,13 +23,15 @@ import androidx.navigation.navArgument
 import com.example.app.auth.AuthManager
 import com.example.app.routes.AuthScreen
 import com.example.app.routes.IntroScreen
+import com.example.app.ui.components.AppHeader
+import com.example.app.ui.components.BottomNavBar
+import com.example.app.ui.tabs.ChatScreen
 import com.example.app.ui.tabs.HelpScreen
 import com.example.app.ui.tabs.ProfileScreen
-import com.example.app.ui.tabs.ChatScreen
-import com.example.app.ui.tabs.VideoScreen
-import com.example.app.ui.components.BottomNavBar
-import com.example.app.ui.components.AppHeader
 import com.example.app.ui.tabs.VideoDetailScreen
+import com.example.app.ui.tabs.VideoScreen
+import com.example.app.viewmodel.FeedViewModel
+import com.example.app.viewmodel.MessageViewModel
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
@@ -29,12 +39,24 @@ fun AppNavigation(
     navController: NavHostController,
     onToggleTheme: () -> Unit
 ) {
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     var isLoggedIn by remember { mutableStateOf(AuthManager.isLoggedIn(context)) }
+
+    // On app start, ensure UserSession is populated if session exists
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            AuthManager.loadSession(context)
+        }
+    }
 
     // Track current route for bottom nav reactively
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: AppRoutes.INTRO
+
+    // Track intended destination after login
+    var destinationAfterLogin by rememberSaveable { mutableStateOf<String?>(null) }
+    // Track which card was clicked before login
+    var postLoginAction by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Observe auth state
     LaunchedEffect(Unit) {
@@ -48,21 +70,40 @@ fun AppNavigation(
         startDestination = AppRoutes.INTRO
     ) {
         composable(AppRoutes.INTRO) {
-            // Standalone: No header/bottom nav
             IntroScreen(
-                onFarmHelpClick = { navController.navigate(AppRoutes.HELP) },
+                onFarmHelpClick = {
+                    if (isLoggedIn) {
+                        navController.navigate(AppRoutes.HELP)
+                    } else {
+                        destinationAfterLogin = AppRoutes.HELP
+                        postLoginAction = "farm_help"
+                        navController.navigate(AppRoutes.AUTH)
+                    }
+                },
                 onVideosClick = {
-                    if (isLoggedIn) navController.navigate(AppRoutes.VIDEOS)
-                    else navController.navigate(AppRoutes.AUTH)
+                    if (isLoggedIn) {
+                        navController.navigate(AppRoutes.VIDEOS)
+                    } else {
+                        destinationAfterLogin = AppRoutes.VIDEOS
+                        postLoginAction = "farm_videos"
+                        navController.navigate(AppRoutes.AUTH)
+                    }
                 },
             )
         }
         composable(AppRoutes.AUTH) {
-            // Standalone: No header/bottom nav
             AuthScreen(
                 onLoginSuccess = {
                     isLoggedIn = true
-                    navController.navigate(AppRoutes.INTRO) {
+                    // Enhanced navigation logic:
+                    val dest = when (postLoginAction) {
+                        "farm_help" -> AppRoutes.HELP
+                        "farm_videos" -> AppRoutes.VIDEOS
+                        else -> destinationAfterLogin ?: AppRoutes.INTRO
+                    }
+                    destinationAfterLogin = null
+                    postLoginAction = null
+                    navController.navigate(dest) {
                         popUpTo(AppRoutes.AUTH) { inclusive = true }
                     }
                 },
@@ -78,26 +119,21 @@ fun AppNavigation(
                 navController = navController,
                 currentRoute = currentRoute,
                 isLoggedIn = isLoggedIn,
-                onToggleTheme = onToggleTheme
             ) {
-                HelpScreen(
-                    onChatClick = {
-                        if (isLoggedIn) navController.navigate(AppRoutes.CHAT)
-                        else navController.navigate(AppRoutes.AUTH)
-                    },
-                    onVideosClick = {
-                        if (isLoggedIn) navController.navigate(AppRoutes.VIDEOS)
-                        else navController.navigate(AppRoutes.AUTH)
-                    }
-                )
+                if (isLoggedIn) {
+                    HelpScreen()
+                } else {
+                    destinationAfterLogin = AppRoutes.HELP
+                    postLoginAction = "farm_help"
+                    LaunchedEffect(Unit) { navController.navigate(AppRoutes.AUTH) }
+                }
             }
         }
         composable(AppRoutes.PROFILE) {
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn,
-                onToggleTheme = onToggleTheme
+                isLoggedIn = isLoggedIn
             ) {
                 ProfileScreen(
                     onToggleTheme = onToggleTheme,
@@ -113,57 +149,53 @@ fun AppNavigation(
                 )
             }
         }
-
         composable(AppRoutes.VIDEOS) {
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn,
-                onToggleTheme = onToggleTheme
+                isLoggedIn = isLoggedIn
             ) {
                 if (isLoggedIn) {
                     VideoScreen(navController = navController)
                 } else {
-                    LaunchedEffect(Unit) {
-                        navController.navigate(AppRoutes.AUTH)
-                    }
+                    destinationAfterLogin = AppRoutes.VIDEOS
+                    postLoginAction = "farm_videos"
+                    LaunchedEffect(Unit) { navController.navigate(AppRoutes.AUTH) }
                 }
             }
         }
-
         composable(
             route = "video_detail/{videoId}",
-            arguments = listOf(navArgument("videoId") { type = NavType.IntType })
+            arguments = listOf(navArgument("videoId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val videoId = backStackEntry.arguments?.getInt("videoId") ?: return@composable
+            val videoId = backStackEntry.arguments?.getString("videoId") ?: return@composable
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn,
-                onToggleTheme = onToggleTheme
+                isLoggedIn = isLoggedIn
             ) {
-                VideoDetailScreen(
-                    videoId = videoId,
-                    onVideoClick = { nextId ->
-                        navController.navigate("video_detail/$nextId")
-                    }
-                )
+                VideoDetailScreen(videoId = videoId, navController = navController)
             }
         }
-
         composable(AppRoutes.CHAT) {
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn,
-                onToggleTheme = onToggleTheme
+                isLoggedIn = isLoggedIn
             ) {
                 if (isLoggedIn) {
-                    ChatScreen()
+                    val feedViewModel: FeedViewModel = viewModel()
+                    val messageViewModel: MessageViewModel = viewModel()
+                    val userPhone = AuthManager.getCurrentUserPhoneNumber(context) ?: ""
+
+                    ChatScreen(
+                        feedViewModel = feedViewModel,
+                        messageViewModel = messageViewModel,
+                        userPhone = userPhone
+                    )
                 } else {
-                    LaunchedEffect(Unit) {
-                        navController.navigate(AppRoutes.AUTH)
-                    }
+                    destinationAfterLogin = AppRoutes.CHAT
+                    LaunchedEffect(Unit) { navController.navigate(AppRoutes.AUTH) }
                 }
             }
         }
@@ -175,10 +207,10 @@ private fun AppScaffold(
     navController: NavHostController,
     currentRoute: String,
     isLoggedIn: Boolean,
-    onToggleTheme: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Scaffold(
+        contentWindowInsets = WindowInsets(0), // disables default bottom padding
         topBar = {
             AppHeader(
                 title = "Farm Hub",

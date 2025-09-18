@@ -1,45 +1,83 @@
 package com.example.app.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.app.models.message.SendMessageResponse
+import com.example.app.repository.FeedRepository
 import com.example.app.repository.MessageRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-sealed class SendMessageUiState {
-    data object Idle : SendMessageUiState()
-    data object Loading : SendMessageUiState()
-    data class Success(val response: SendMessageResponse) : SendMessageUiState()
-    data class Error(val message: String) : SendMessageUiState()
-}
 
 class MessageViewModel(
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository = MessageRepository(),
+    private val feedRepository: FeedRepository = FeedRepository()
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<SendMessageUiState>(SendMessageUiState.Idle)
-    val uiState: StateFlow<SendMessageUiState> = _uiState
+    private val _feedItems = MutableStateFlow<List<com.example.app.models.feed.FeedItem>>(emptyList())
+    val feedItems: StateFlow<List<com.example.app.models.feed.FeedItem>> get() = _feedItems
 
-    fun sendMessage(message: String, attachmentUri: Uri?) {
-        _uiState.value = SendMessageUiState.Loading
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> get() = _loading
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> get() = _error
+
+    private val _sending = MutableStateFlow(false)
+    val sending: StateFlow<Boolean> get() = _sending
+
+
+    fun clearError() {
+        _error.value = null
+    }
+
+    fun fetchFeed() {
         viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
             try {
-                val response = messageRepository.sendMessage(message, attachmentUri)
-                if (response.isSuccessful && response.body() != null) {
-                    _uiState.value = SendMessageUiState.Success(response.body()!!)
-                } else {
-                    _uiState.value = SendMessageUiState.Error("Failed: ${response.code()} ${response.message()}")
-                }
+                _feedItems.value = feedRepository.getUnifiedFeed()
             } catch (e: Exception) {
-                _uiState.value = SendMessageUiState.Error("Exception: ${e.message}")
+                _error.value = e.message
+            } finally {
+                _loading.value = false
             }
         }
     }
 
-    fun resetState() {
-        _uiState.value = SendMessageUiState.Idle
+    fun createPost(text: String, imageUri: Uri, context: Context, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            _sending.value = true
+            _error.value = null
+            try {
+                val result = messageRepository.createPost(text, imageUri, context)
+                onResult(result)
+                if (!result) _error.value = "Failed to send post"
+            } catch (e: Exception) {
+                _error.value = e.message
+                onResult(false)
+            } finally {
+                _sending.value = false
+            }
+        }
+    }
+
+    fun sendMessage(text: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            _sending.value = true
+            _error.value = null
+            try {
+                val result = messageRepository.sendMessage(text)
+                onResult(result)
+                if (!result) _error.value = "Failed to send message"
+            } catch (e: Exception) {
+                _error.value = e.message
+                onResult(false)
+            } finally {
+                _sending.value = false
+            }
+        }
     }
 }
