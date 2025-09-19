@@ -1,10 +1,25 @@
 package com.example.app.ui.tabs
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -12,9 +27,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,8 +55,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.app.models.media.MediaItem
-import com.example.app.viewmodel.MediaViewModel
 import com.example.app.viewmodel.MediaUiState
+import com.example.app.viewmodel.MediaViewModel
 
 @Composable
 fun VideoScreen(
@@ -37,6 +65,7 @@ fun VideoScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showSidePanel by remember { mutableStateOf(false) }
+    var selectedFilter by remember { mutableStateOf("All") }
 
     LaunchedEffect(Unit) {
         viewModel.loadMedia()
@@ -54,15 +83,17 @@ fun VideoScreen(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .height(24.dp), // Minimized height of filter bar
+                        .height(36.dp), // Height for filter bar
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ToggleSidePanelButton(
                         showSidePanel = showSidePanel,
                         onToggle = { showSidePanel = !showSidePanel }
                     )
-                    FilterRow()
-
+                    FilterRow(
+                        selected = selectedFilter,
+                        onSelected = { selectedFilter = it }
+                    )
                 }
                 Row(Modifier.fillMaxSize()) {
                     AnimatedVisibility(
@@ -96,13 +127,18 @@ fun VideoScreen(
                             }
                             is MediaUiState.Success -> {
                                 val videos = (uiState as MediaUiState.Success).videos
+                                val filteredVideos = when (selectedFilter) {
+                                    "Recent" -> videos.sortedByDescending { it.createdAt }
+                                    "Company" -> videos.filter { it.company.isNotEmpty() }
+                                    else -> videos
+                                }
                                 LazyColumn(
                                     Modifier
                                         .fillMaxSize()
                                         .background(MaterialTheme.colorScheme.background)
                                 ) {
-                                    items(videos) { video ->
-                                        YoutubeVideoListItem(
+                                    items(filteredVideos) { video ->
+                                        VideoListItem(
                                             video = video,
                                             onClick = { navController.navigate("video_detail/${video.id}") }
                                         )
@@ -123,31 +159,43 @@ fun VideoScreen(
 }
 
 @Composable
-fun FilterRow() {
+fun FilterRow(
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    val filters = listOf("All", "Recent", "Company")
     Row(
-        Modifier.padding(start = 4.dp), // Minimal padding
+        Modifier.padding(start = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        FilterChip(label = "All")
-        FilterChip(label = "Recent")
-        FilterChip(label = "Company")
+        filters.forEach { filter ->
+            FilterChip(
+                label = filter,
+                selected = selected == filter,
+                onClick = { onSelected(filter) }
+            )
+        }
     }
 }
 
 @Composable
-fun FilterChip(label: String) {
+fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+        color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
         shape = MaterialTheme.shapes.small,
         modifier = Modifier
             .padding(end = 4.dp)
-            .clickable { /* blank, no redirect */ }
+            .clickable { onClick() }
     ) {
         Box(
-            Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(label, color = MaterialTheme.colorScheme.primary)
+            Text(
+                label,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            )
         }
     }
 }
@@ -206,12 +254,12 @@ fun SidePanel(modifier: Modifier = Modifier, onHide: () -> Unit) {
 }
 
 @Composable
-fun YoutubeVideoListItem(video: MediaItem, onClick: () -> Unit) {
+fun VideoListItem(video: MediaItem, onClick: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 12.dp, horizontal = 8.dp) // Added padding for video container
+            .padding(vertical = 12.dp, horizontal = 8.dp)
     ) {
         Box(
             Modifier
@@ -245,6 +293,17 @@ fun YoutubeVideoListItem(video: MediaItem, onClick: () -> Unit) {
                     )
                 }
             }
+            // Playback icon overlay (always visible, even with a thumbnail)
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = "Play",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(64.dp)
+                    .align(Alignment.Center)
+                    .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                    .padding(8.dp)
+            )
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -275,10 +334,12 @@ fun YoutubeVideoListItem(video: MediaItem, onClick: () -> Unit) {
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = video.description,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2
-        )
+        if (video.description.isNotBlank()) {
+            Text(
+                text = video.description,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2
+            )
+        }
     }
 }

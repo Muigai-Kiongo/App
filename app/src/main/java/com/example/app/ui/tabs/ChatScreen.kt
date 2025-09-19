@@ -1,21 +1,18 @@
 package com.example.app.ui.tabs
 
+import android.Manifest
+import android.content.ContentValues
+import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,20 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,13 +35,12 @@ import com.example.app.viewmodel.FeedViewModel
 import com.example.app.viewmodel.MessageViewModel
 
 private val SubtleGreen = Color(0xFFDFFFE2)
-private val SendGreen = Color(0xFF37B24D) // A lively green for the send icon
+private val SendGreen = Color(0xFF37B24D)
 
 @Composable
 fun ChatScreen(
     feedViewModel: FeedViewModel,
     messageViewModel: MessageViewModel,
-    userPhone: String,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -64,25 +48,60 @@ fun ChatScreen(
     val feedItems by feedViewModel.feedItems.collectAsState()
     val feedLoading by feedViewModel.loading.collectAsState()
     val feedError by feedViewModel.error.collectAsState()
-
     val messageSending by messageViewModel.sending.collectAsState()
     val messageError by messageViewModel.error.collectAsState()
 
     var inputText by remember { mutableStateOf("") }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var previewImageUri by remember { mutableStateOf<Uri?>(null) }
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showPreview by remember { mutableStateOf(false) }
+    var requestCameraPermissions by remember { mutableStateOf(false) }
+    var showPermissionDenied by remember { mutableStateOf(false) }
 
+    // Gallery picker
     val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        selectedImageUri = uri
+        if (uri != null) {
+            previewImageUri = uri
+            showPreview = true
+        }
     }
 
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
+        if (success && cameraImageUri != null) {
+            previewImageUri = cameraImageUri
+            showPreview = true
+        }
+    }
+
+    if (requestCameraPermissions) {
+        CameraPermissionsHandler(
+            onGranted = {
+                val uri = createImageUri(context)
+                cameraImageUri = uri
+                if (uri != null) cameraLauncher.launch(uri)
+                else Toast.makeText(context, "Could not create image file", Toast.LENGTH_SHORT).show()
+                requestCameraPermissions = false
+            },
+            onDenied = {
+                showPermissionDenied = true
+                requestCameraPermissions = false
+            }
+        )
+    }
+    if (showPermissionDenied) {
+        Toast.makeText(context, "Camera permission required", Toast.LENGTH_LONG).show()
+    }
+
+    // Only load feed if needed (prevents redundant fetching)
     LaunchedEffect(Unit) {
-        feedViewModel.fetchFeed()
+        feedViewModel.loadFeedIfNeeded()
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) {
+        // Feed area
         Box(Modifier.weight(1f)) {
             when {
                 feedLoading -> {
@@ -110,41 +129,80 @@ fun ChatScreen(
                     }
                 }
             }
-
             if (messageError != null) {
                 Toast.makeText(context, "Message Error: $messageError", Toast.LENGTH_SHORT).show()
                 messageViewModel.clearError()
             }
         }
 
-        ChatInputBar(
-            inputText = inputText,
-            onInputTextChange = { inputText = it },
-            selectedImageUri = selectedImageUri,
-            onPickImage = { pickImageLauncher.launch("image/*") },
-            onRemoveImage = { selectedImageUri = null },
-            onSendClick = {
-                if (selectedImageUri != null) {
+        // Show "Sending..." overlay if a post or message is being sent
+        if (messageSending) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xAAFFFFFF))
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        color = SendGreen,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Sending...", style = MaterialTheme.typography.bodyMedium, color = SendGreen)
+                }
+            }
+        }
+
+        // Attachment preview step for camera/gallery images
+        if (showPreview && previewImageUri != null) {
+            ImagePreviewStep(
+                imageUri = previewImageUri!!,
+                description = inputText,
+                onDescriptionChange = { inputText = it },
+                sending = messageSending,
+                onSend = {
                     messageViewModel.createPost(
-                        inputText, selectedImageUri!!, context
+                        text = inputText,
+                        imageUri = previewImageUri!!,
+                        context = context
                     ) { success ->
-                        if (!success) Toast.makeText(context, "Failed to send post", Toast.LENGTH_SHORT).show()
-                        else feedViewModel.fetchFeed()
+                        if (!success) Toast.makeText(context, "Failed to send attachment", Toast.LENGTH_SHORT).show()
+                        else feedViewModel.refreshFeed()
                     }
-                    selectedImageUri = null
-                } else {
-                    messageViewModel.sendMessage(
-                        inputText
-                    ) { success ->
-                        if (!success) Toast.makeText(context, "Failed to send message", Toast.LENGTH_SHORT).show()
-                        else feedViewModel.fetchFeed()
+                    // Reset state
+                    inputText = ""
+                    previewImageUri = null
+                    showPreview = false
+                },
+                onCancel = {
+                    previewImageUri = null
+                    showPreview = false
+                }
+            )
+        } else {
+            // Regular chat input bar
+            ChatInputBar(
+                inputText = inputText,
+                onInputTextChange = { inputText = it },
+                onPickImage = { pickImageLauncher.launch("image/*") },
+                messageSending = messageSending,
+                onCameraClick = { requestCameraPermissions = true },
+                onSendClick = {
+                    if (inputText.isNotBlank()) {
+                        messageViewModel.sendMessage(
+                            inputText
+                        ) { success ->
+                            if (!success) Toast.makeText(context, "Failed to send message", Toast.LENGTH_SHORT).show()
+                            else feedViewModel.refreshFeed()
+                        }
+                        inputText = ""
                     }
                 }
-                inputText = ""
-            },
-            messageSending = messageSending,
-            onCameraClick = { /* TODO: Camera logic */ }
-        )
+            )
+        }
     }
 }
 
@@ -152,59 +210,151 @@ fun ChatScreen(
 fun ChatInputBar(
     inputText: String,
     onInputTextChange: (String) -> Unit,
-    selectedImageUri: Uri?,
     onPickImage: () -> Unit,
-    onRemoveImage: () -> Unit,
-    onSendClick: () -> Unit,
     messageSending: Boolean,
-    onCameraClick: () -> Unit
+    onCameraClick: () -> Unit,
+    onSendClick: () -> Unit
 ) {
-    Column {
-        if (selectedImageUri != null) {
-            Box {
-                Image(
-                    painter = rememberAsyncImagePainter(selectedImageUri),
-                    contentDescription = "Selected image",
-                    modifier = Modifier
-                        .height(80.dp)
-                        .fillMaxWidth()
-                        .padding(4.dp)
-                )
-            }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .background(MaterialTheme.colorScheme.surface),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onCameraClick, enabled = !messageSending) {
+            Icon(Icons.Default.CameraAlt, contentDescription = "Camera")
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        IconButton(onClick = onPickImage, enabled = !messageSending) {
+            Icon(Icons.Default.AttachFile, contentDescription = "Attach")
+        }
+        OutlinedTextField(
+            value = inputText,
+            onValueChange = onInputTextChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("Type a message...") },
+            maxLines = 4,
+            singleLine = false,
+            enabled = !messageSending
+        )
+        IconButton(
+            enabled = !messageSending && inputText.isNotBlank(),
+            onClick = onSendClick
         ) {
-            IconButton(onClick = onCameraClick) {
-                Icon(Icons.Default.CameraAlt, contentDescription = "Camera")
-            }
-            IconButton(onClick = onPickImage) {
-                Icon(Icons.Default.AttachFile, contentDescription = "Attach")
-            }
-            OutlinedTextField(
-                value = inputText,
-                onValueChange = onInputTextChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message...") }
-            )
-            IconButton(
-                enabled = !messageSending && inputText.isNotBlank(),
-                onClick = onSendClick
-            ) {
+            if (messageSending) {
+                CircularProgressIndicator(
+                    color = SendGreen,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Send",
-                    tint = SendGreen // Green send icon
+                    tint = SendGreen
                 )
             }
         }
     }
 }
 
-// Subtle green card for posts, right-aligned
+@Composable
+fun ImagePreviewStep(
+    imageUri: Uri,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    sending: Boolean,
+    onSend: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Preview Image", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(16.dp))
+        Image(
+            painter = rememberAsyncImagePainter(imageUri),
+            contentDescription = "Preview",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .clip(RoundedCornerShape(16.dp)),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(
+            value = description,
+            onValueChange = onDescriptionChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Add a description...") },
+            enabled = !sending
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedButton(onClick = onCancel, enabled = !sending) { Text("Cancel") }
+            Button(
+                onClick = onSend,
+                enabled = !sending && description.isNotBlank()
+            ) {
+                if (sending) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sending...")
+                } else {
+                    Text("Send")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CameraPermissionsHandler(
+    onGranted: () -> Unit,
+    onDenied: () -> Unit
+) {
+    val context = LocalContext.current
+    val permissions = buildList {
+        add(Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT in 23..32) {
+            add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+    }.toTypedArray()
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result.all { it.value }) onGranted() else onDenied()
+    }
+    LaunchedEffect(Unit) {
+        val granted = permissions.all { perm ->
+            androidx.core.content.ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+        }
+        if (granted) onGranted() else launcher.launch(permissions)
+    }
+}
+
+fun createImageUri(context: Context): Uri? {
+    val contentResolver = context.contentResolver
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, "chat_image_${System.currentTimeMillis()}.jpg")
+        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/ChatImages")
+        }
+    }
+    return contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+}
+
 @Composable
 fun PostCardStyled(item: FeedItem.PostItem) {
     Box(
@@ -223,7 +373,6 @@ fun PostCardStyled(item: FeedItem.PostItem) {
             Column(
                 modifier = Modifier.padding(14.dp)
             ) {
-                // Optional post image
                 if (item.post.imageUrl.isNotBlank()) {
                     Image(
                         painter = rememberAsyncImagePainter(item.post.imageUrl),
@@ -253,7 +402,6 @@ fun PostCardStyled(item: FeedItem.PostItem) {
     }
 }
 
-// Card style for thread items, visually distinct (right aligned, blue background)
 @Composable
 fun ThreadCardStyled(item: FeedItem.ThreadItemFeed) {
     Box(
@@ -272,7 +420,6 @@ fun ThreadCardStyled(item: FeedItem.ThreadItemFeed) {
             Column(
                 modifier = Modifier.padding(14.dp)
             ) {
-                // Optional thread image
                 if (item.thread.image.isNotBlank()) {
                     Image(
                         painter = rememberAsyncImagePainter(item.thread.image),

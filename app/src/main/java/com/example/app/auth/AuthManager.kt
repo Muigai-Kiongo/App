@@ -101,21 +101,6 @@ object AuthManager {
         timeoutJob?.cancel()
     }
 
-    fun saveToken(context: Context, token: String) {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.edit {
-            putString(KEY_TOKEN, token)
-            putLong(KEY_TOKEN_TIMESTAMP, System.currentTimeMillis())
-            putLong(KEY_EXPIRES, System.currentTimeMillis() + TOKEN_TIMEOUT_MILLIS)
-        }
-        UserSession.token = token
-        UserSession.issued = System.currentTimeMillis()
-        UserSession.expires = System.currentTimeMillis() + TOKEN_TIMEOUT_MILLIS
-        authState.value = true
-        ApiClient.setBearerToken(token)
-        startTimeout(context)
-    }
-
     fun getCurrentUserPhoneNumber(context: Context): String? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return prefs.getString(KEY_USER_PHONE, null)

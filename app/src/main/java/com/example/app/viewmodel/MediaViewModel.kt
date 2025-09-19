@@ -21,6 +21,25 @@ class MediaViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<MediaUiState>(MediaUiState.Loading)
     val uiState: StateFlow<MediaUiState> = _uiState
 
+    // --- Enhancement for playback buffer optimization ---
+    // Playback state cache for quick resume (per videoId)
+    private val _playbackPositions = mutableMapOf<String, Long>()
+    fun getPlaybackPosition(videoId: String): Long = _playbackPositions[videoId] ?: 0L
+    fun setPlaybackPosition(videoId: String, position: Long) {
+        _playbackPositions[videoId] = position
+    }
+
+    // Track last played videoId for state restoration
+    private var _lastPlayedVideoId: String? = null
+    fun setLastPlayedVideoId(videoId: String) {
+        _lastPlayedVideoId = videoId
+    }
+    // --- End enhancement ---
+
+    init {
+        loadMedia() // Automatically load media when ViewModel is created
+    }
+
     fun loadMedia() {
         _uiState.value = MediaUiState.Loading
         viewModelScope.launch {

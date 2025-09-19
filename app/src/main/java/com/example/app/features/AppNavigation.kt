@@ -41,6 +41,7 @@ fun AppNavigation(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var isLoggedIn by remember { mutableStateOf(AuthManager.isLoggedIn(context)) }
+    var isVideoFullscreen by rememberSaveable { mutableStateOf(false) }
 
     // On app start, ensure UserSession is populated if session exists
     LaunchedEffect(isLoggedIn) {
@@ -118,7 +119,7 @@ fun AppNavigation(
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn,
+                isFullscreen = false
             ) {
                 if (isLoggedIn) {
                     HelpScreen()
@@ -133,7 +134,7 @@ fun AppNavigation(
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn
+                isFullscreen = false
             ) {
                 ProfileScreen(
                     onToggleTheme = onToggleTheme,
@@ -153,7 +154,7 @@ fun AppNavigation(
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn
+                isFullscreen = false
             ) {
                 if (isLoggedIn) {
                     VideoScreen(navController = navController)
@@ -172,16 +173,21 @@ fun AppNavigation(
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn
+                isFullscreen = isVideoFullscreen
             ) {
-                VideoDetailScreen(videoId = videoId, navController = navController)
+                VideoDetailScreen(
+                    videoId = videoId,
+                    navController = navController,
+                    isFullscreen = isVideoFullscreen,
+                    setFullscreen = { isVideoFullscreen = it }
+                )
             }
         }
         composable(AppRoutes.CHAT) {
             AppScaffold(
                 navController = navController,
                 currentRoute = currentRoute,
-                isLoggedIn = isLoggedIn
+                isFullscreen = false
             ) {
                 if (isLoggedIn) {
                     val feedViewModel: FeedViewModel = viewModel()
@@ -190,8 +196,7 @@ fun AppNavigation(
 
                     ChatScreen(
                         feedViewModel = feedViewModel,
-                        messageViewModel = messageViewModel,
-                        userPhone = userPhone
+                        messageViewModel = messageViewModel
                     )
                 } else {
                     destinationAfterLogin = AppRoutes.CHAT
@@ -206,33 +211,34 @@ fun AppNavigation(
 private fun AppScaffold(
     navController: NavHostController,
     currentRoute: String,
-    isLoggedIn: Boolean,
+    isFullscreen: Boolean = false,
     content: @Composable () -> Unit
 ) {
     Scaffold(
         contentWindowInsets = WindowInsets(0), // disables default bottom padding
         topBar = {
-            AppHeader(
-                title = "Farm Hub",
-                onChatClick = {
-                    if (isLoggedIn) navController.navigate(AppRoutes.CHAT)
-                    else navController.navigate(AppRoutes.AUTH)
-                }
-            )
+            if (!isFullscreen) {
+                AppHeader(
+                    title = "Farm Hub",
+                    onTitleClick = { navController.navigate(AppRoutes.INTRO) }
+                )
+            }
         },
         bottomBar = {
-            BottomNavBar(
-                currentRoute = currentRoute,
-                onTabSelected = { route ->
-                    navController.navigate(route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+            if (!isFullscreen) {
+                BottomNavBar(
+                    currentRoute = currentRoute,
+                    onTabSelected = { route ->
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
                     }
-                }
-            )
+                )
+            }
         }
     ) { innerPadding ->
         Surface(modifier = Modifier.padding(innerPadding)) {

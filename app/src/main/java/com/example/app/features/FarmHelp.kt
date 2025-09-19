@@ -1,8 +1,16 @@
 package com.example.app.features
 
+import android.Manifest
+import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.widget.Toast
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
@@ -31,46 +39,73 @@ fun FarmHelp(viewModel: FarmHelpViewModel, onClose: (() -> Unit)? = null) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // Image picker - Gallery
-    val galleryLauncher = rememberLauncherForActivityResult(
+    // Camera: State to hold the last photo Uri
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraImage by remember { mutableStateOf<Uri?>(null) }
+    var showCameraPreview by remember { mutableStateOf(false) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success && cameraImageUri != null) {
+            pendingCameraImage = cameraImageUri
+            showCameraPreview = true // Show preview before proceeding
+        } else {
+            pendingCameraImage = null
+            showCameraPreview = false
+        }
+    }
+
+    // Photo Picker for Android 13+ (Tiramisu/API 33)
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        viewModel.setSelectedImageUri(uri)
+        if (uri != null) viewModel.nextStep()
+    }
+    // Legacy Gallery Picker for pre-Android 13
+    val legacyGalleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         viewModel.setSelectedImageUri(uri)
         if (uri != null) viewModel.nextStep()
     }
 
-    // Image picker - Camera
-    val cameraImageUri = remember { mutableStateOf<Uri?>(null) }
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success: Boolean ->
-        if (success) {
-            viewModel.setSelectedImageUri(cameraImageUri.value)
-            if (cameraImageUri.value != null) viewModel.nextStep()
-        }
+    var requestPermissions by remember { mutableStateOf(false) }
+    var showPermissionDenied by remember { mutableStateOf(false) }
+
+    if (requestPermissions) {
+        PermissionsHandler(
+            onGranted = {
+                val uri = createImageUri(context)
+                cameraImageUri = uri
+                if (uri != null) {
+                    cameraLauncher.launch(uri)
+                } else {
+                    Toast.makeText(context, "Could not create image file", Toast.LENGTH_SHORT).show()
+                }
+                requestPermissions = false
+            },
+            onDenied = {
+                showPermissionDenied = true
+                requestPermissions = false
+            }
+        )
+    }
+    if (showPermissionDenied) {
+        Toast.makeText(context, "Camera and storage permissions are required", Toast.LENGTH_LONG).show()
     }
 
-    var requestPermissions by remember { mutableStateOf(false) }
-    var launchCameraAfterPermission by remember { mutableStateOf(false) }
-
-    // Permissions handler integration
-    PermissionsHandler(
-        onGranted = {
-            if (launchCameraAfterPermission) {
-                val uri = viewModel.createImageUri(context)
-                cameraImageUri.value = uri
-                cameraLauncher.launch(uri)
-                launchCameraAfterPermission = false
-            }
-            requestPermissions = false
-        },
-        onDenied = {
-            viewModel.setErrorMessage("All permissions (camera & storage) are required!")
-            requestPermissions = false
-            launchCameraAfterPermission = false
-        },
-        requestNow = requestPermissions
-    )
+    // Unified gallery launcher for all Android versions
+    fun launchGallery() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            photoPickerLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        } else {
+            legacyGalleryLauncher.launch("image/*")
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -89,29 +124,49 @@ fun FarmHelp(viewModel: FarmHelpViewModel, onClose: (() -> Unit)? = null) {
                 }
             }
         }
-
         Spacer(Modifier.height(16.dp))
 
-        AnimatedContent(targetState = uiState.currentStep, label = "Step Animation") { step ->
-            when (step) {
-                1 -> UploadStep(
-                    onGallery = { galleryLauncher.launch("image/*") },
-                    onCamera = {
-                        requestPermissions = true
-                        launchCameraAfterPermission = true
+        when {
+            // If a camera image is pending confirmation, show the preview step
+            showCameraPreview && pendingCameraImage != null -> {
+                CameraPreviewStep(
+                    imageUri = pendingCameraImage!!,
+                    onOkay = {
+                        viewModel.setSelectedImageUri(pendingCameraImage)
+                        viewModel.nextStep()
+                        showCameraPreview = false
+                        pendingCameraImage = null
+                    },
+                    onRetake = {
+                        showCameraPreview = false
+                        pendingCameraImage = null
+                        // Re-launch camera:
+                        val uri = createImageUri(context)
+                        cameraImageUri = uri
+                        if (uri != null) cameraLauncher.launch(uri)
                     }
                 )
-                2 -> DescribeStep(
-                    description = uiState.description,
-                    selectedImageUri = uiState.selectedImageUri,
-                    onDescriptionChange = { viewModel.setDescription(it) },
-                    onSubmit = { viewModel.showConfirmationDialog(true) },
-                    onBack = { viewModel.prevStep() }
-                )
-                3 -> SuccessStep(onHome = {
-                    viewModel.reset()
-                    onClose?.invoke()
-                })
+            }
+            else -> {
+                AnimatedContent(targetState = uiState.currentStep, label = "Step Animation") { step ->
+                    when (step) {
+                        1 -> UploadStep(
+                            onGallery = { launchGallery() },
+                            onCamera = { requestPermissions = true }
+                        )
+                        2 -> DescribeStep(
+                            description = uiState.description,
+                            selectedImageUri = uiState.selectedImageUri,
+                            onDescriptionChange = { viewModel.setDescription(it) },
+                            onSubmit = { viewModel.showConfirmationDialog(true) },
+                            onBack = { viewModel.prevStep() }
+                        )
+                        3 -> SuccessStep(onHome = {
+                            viewModel.reset()
+                            onClose?.invoke()
+                        })
+                    }
+                }
             }
         }
 
@@ -128,6 +183,55 @@ fun FarmHelp(viewModel: FarmHelpViewModel, onClose: (() -> Unit)? = null) {
             CircularProgressIndicator(modifier = Modifier.padding(8.dp))
         }
     }
+}
+
+/**
+ * Requests CAMERA and storage permissions at runtime.
+ * Calls onGranted if all permissions are granted, or onDenied otherwise.
+ * Modernized for minSdk 23+ and Android 13+/14+ behaviors.
+ */
+@Composable
+fun PermissionsHandler(
+    onGranted: () -> Unit,
+    onDenied: () -> Unit
+) {
+    val context = LocalContext.current
+    LocalActivity.current
+
+    // Only request what you actually need:
+    val permissions = buildList {
+        add(Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT in 23..32) {
+            add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        // For camera-only flow, skip READ_MEDIA_IMAGES, unless you access gallery via MediaStore directly
+    }.toTypedArray()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result.all { it.value }) onGranted() else onDenied()
+    }
+
+    LaunchedEffect(Unit) {
+        val granted = permissions.all { perm ->
+            androidx.core.content.ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+        }
+        if (granted) onGranted() else launcher.launch(permissions)
+    }
+}
+
+/** Helper to create a MediaStore image Uri for the camera. */
+fun createImageUri(context: Context): Uri? {
+    val contentResolver = context.contentResolver
+    val contentValues = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, "farm_help_${System.currentTimeMillis()}.jpg")
+        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/FarmHelp")
+        }
+    }
+    return contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
 }
 
 @Composable
@@ -192,6 +296,40 @@ fun UploadStep(onGallery: () -> Unit, onCamera: () -> Unit) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Upload from Gallery")
             }
+        }
+    }
+}
+
+@Composable
+fun CameraPreviewStep(
+    imageUri: Uri,
+    onOkay: () -> Unit,
+    onRetake: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Preview Photo", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(16.dp))
+        Image(
+            painter = rememberAsyncImagePainter(imageUri),
+            contentDescription = "Captured Photo",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .background(Color.LightGray),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedButton(onClick = onRetake) { Text("Retake") }
+            Button(onClick = onOkay) { Text("Okay") }
         }
     }
 }
@@ -293,7 +431,7 @@ fun SuccessStep(onHome: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onHome) {
-            Text("Go Back")
+            Text("Back to Home")
         }
     }
 }

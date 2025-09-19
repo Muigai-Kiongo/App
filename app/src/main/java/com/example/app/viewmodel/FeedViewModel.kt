@@ -21,17 +21,41 @@ class FeedViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> get() = _error
 
+    // Internal flag to avoid redundant fetching
+    private var hasLoaded = false
+
+    /**
+     * Load feed only if not already loaded (e.g. screen start).
+     */
+    fun loadFeedIfNeeded() {
+        if (!hasLoaded) {
+            fetchFeed()
+        }
+    }
+
+    /**
+     * Explicitly fetch the feed (e.g. after sending a post, or pull-to-refresh).
+     */
     fun fetchFeed() {
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
             try {
                 _feedItems.value = repository.getUnifiedFeed()
+                hasLoaded = true
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
                 _loading.value = false
             }
         }
+    }
+
+    /**
+     * Force a new fetch from the repository (for manual refresh).
+     */
+    fun refreshFeed() {
+        hasLoaded = false
+        fetchFeed()
     }
 }
