@@ -17,7 +17,14 @@ class ProfileViewModel : ViewModel() {
 
     private val repository = ProfileRepository()
 
-    fun fetchProfile() {
+    // Only fetch if profile is not loaded yet
+    fun fetchProfileIfNeeded() {
+        if (profile == null && !isLoading) {
+            fetchProfile()
+        }
+    }
+
+    private fun fetchProfile() {
         isLoading = true
         error = null
         repository.getProfile(

@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app.features.FarmHelp
 import com.example.app.viewmodel.FarmHelpViewModel
@@ -35,7 +36,7 @@ fun HelpScreen(
     var showFarmHelp by remember { mutableStateOf(false) }
     val farmHelpViewModel: FarmHelpViewModel = viewModel()
 
-    // Removed Scaffold and header/bottom nav. Only content below:
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -88,6 +89,19 @@ fun HelpScreen(
                         )
                     }
                 }
+                Button(
+                    onClick = { showFarmHelp = !showFarmHelp },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        if (showFarmHelp) "Close FarmHelp" else "Ask a Question",
+                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 24.sp),
+                    )
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(vertical = 12.dp)
@@ -104,6 +118,8 @@ fun HelpScreen(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+
+
                 val faqList = remember {
                     mutableStateListOf(
                         FAQItem("Farm News", "Get the latest agricultural news, policy updates, and farming innovations.", Icons.Default.Info),
@@ -120,18 +136,7 @@ fun HelpScreen(
                         ExpandableFAQCard(faqItem = item)
                     }
                 }
-                Button(
-                    onClick = { showFarmHelp = !showFarmHelp },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        if (showFarmHelp) "Close FarmHelp" else "Ask a Question",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
+
 
             }
             AnimatedVisibility(

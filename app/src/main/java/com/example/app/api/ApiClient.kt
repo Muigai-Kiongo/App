@@ -7,7 +7,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
-    private const val BASE_URL = "https://9442957920ec.ngrok-free.app"
+    private const val BASE_URL = "https://api.farmers-hub.co.ke"
     @Volatile private var bearerToken: String? = null
 
     fun setBearerToken(token: String?) {

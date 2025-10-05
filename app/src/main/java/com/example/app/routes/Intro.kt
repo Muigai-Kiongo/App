@@ -89,7 +89,7 @@ fun IntroScreen(
                     // Smaller text
                     Text(
                         text = "Expert advice on farming.",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 18.sp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         textAlign = TextAlign.Start,
                         modifier = Modifier.weight(1.7f)
@@ -131,7 +131,7 @@ fun IntroScreen(
                     // Smaller text
                     Text(
                         text = "Watch free farming videos.",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 18.sp),
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         textAlign = TextAlign.Start,
                         modifier = Modifier.weight(1.7f)

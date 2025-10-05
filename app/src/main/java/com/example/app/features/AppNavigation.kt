@@ -219,7 +219,7 @@ private fun AppScaffold(
         topBar = {
             if (!isFullscreen) {
                 AppHeader(
-                    title = "Farm Hub",
+                    title = "FarmHub",
                     onTitleClick = { navController.navigate(AppRoutes.INTRO) }
                 )
             }

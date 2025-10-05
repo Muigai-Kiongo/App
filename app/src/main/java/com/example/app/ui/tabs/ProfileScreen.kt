@@ -2,7 +2,6 @@ package com.example.app.ui.tabs
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,8 +58,9 @@ fun ProfileScreen(
     onSignOutClick: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
+    // Enhanced: Only fetch profile if needed (caching in ViewModel)
     LaunchedEffect(Unit) {
-        viewModel.fetchProfile()
+        viewModel.fetchProfileIfNeeded()
     }
 
     val profile = viewModel.profile?.data
@@ -79,7 +79,6 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
-
         ) {
             Image(
                 painter = painterResource(id = R.drawable.farmhelp_logo_horizontal),
